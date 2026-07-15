@@ -1,9 +1,9 @@
-from jose import JWTError, jwt # type: ignore
+from jose import JWTError, jwt 
 from config import settings
-from passlib.context import CryptContext  # type: ignore
+from passlib.context import CryptContext  
 from datetime import datetime,timedelta,timezone
 
-contex = CryptContext(schemes=["bcrypt","argon2"], deprecated = "auto")
+contex = CryptContext(schemes=["argon2","bcrypt"], deprecated = "auto")
 
 def hash_password(password:str)->str:
     return contex.hash(password)
