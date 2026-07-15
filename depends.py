@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from schemas.dbmodels import UserDB
 
-user_schema = OAuth2PasswordBearer(tokenUrl="/users/login")
+user_schema = OAuth2PasswordBearer(tokenUrl="/user/login")
 
 async def get_db():
     async with Async_Session_Local() as db:

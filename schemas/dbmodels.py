@@ -47,7 +47,7 @@ class TaskDB(Base):
     description : Mapped[str]
     status : Mapped[str] = mapped_column(Enum("todo","in_progress","review","done", name = "status"), default = "todo")  
     priority : Mapped[str] = mapped_column(Enum("low","medium","high",name = "priority"), default = "medium")   
-    deadline : Mapped[datetime]
+    deadline : Mapped[datetime] = mapped_column(DateTime(timezone=True))
     project_id : Mapped[int] = mapped_column(ForeignKey("Projects.id")) 
     assignee_id : Mapped[int] = mapped_column(ForeignKey("Users.id"),nullable=True) 
     created_by : Mapped[int] = mapped_column(ForeignKey("Users.id"))
