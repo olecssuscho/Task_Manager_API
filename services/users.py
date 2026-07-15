@@ -1,6 +1,9 @@
+from fastapi import HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from schemas.dbmodels import UserDB
-from auth import create_refresh_token,hash_password
+from fastapi.security import OAuth2PasswordRequestForm
+from auth import check_password, create_access_token, create_refresh_token,hash_password
 
 async def register_services(user:UserDB,db:AsyncSession):
     refresh_token = create_refresh_token({"email":user.email})
@@ -10,3 +13,13 @@ async def register_services(user:UserDB,db:AsyncSession):
     db.add(UserDB(**user.model_dump(),refresh_token = refresh_token))
     await db.commit()
     return refresh_token
+
+async def login_services(form_data:OAuth2PasswordRequestForm,db:AsyncSession):
+    result = await db.execute(select(UserDB).filter(UserDB.email==form_data.username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not check_password(form_data.password,user.password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Password is not correct")
+    access_token = create_access_token({"email": user.email})
+    return {"access_token": access_token, "refresh_token": user.refresh_token,"token_type": "bearer"}
