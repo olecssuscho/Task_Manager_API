@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import users,projects,project_member
+from routers import project_members,users,projects,tasks
 app = FastAPI()
 
 @app.get("/")
@@ -8,4 +8,5 @@ def root():
 
 app.include_router(users.router)
 app.include_router(projects.router)
-app.include_router(project_member.router)
+app.include_router(project_members.router)
+app.include_router(tasks.router)

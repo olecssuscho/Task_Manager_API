@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel
 
@@ -12,4 +13,14 @@ class ProjectMODELS(BaseModel):
     name : str
     description : str
     owner_email : str
+
+class TaskMODELS(BaseModel):
+    title : str
+    description : str
+    status : Literal["todo","in_progress","review","done"]
+    priority : Literal["low","medium","high"]
+    deadline : datetime
+    project_id : int
+    assignee_email : str
+
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from schemas.models import UserMODELS
 from depends import get_current_user, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from services.project_member import add_member_services
+from services.project_members import add_member_services
 
 router = APIRouter(prefix="/project_member",tags=["Project_members"])
 
