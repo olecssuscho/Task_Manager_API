@@ -13,4 +13,5 @@ async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession)
     )
     db.add(project_db)
     await db.commit()
+    await db.refresh(project_db)
     return project_db

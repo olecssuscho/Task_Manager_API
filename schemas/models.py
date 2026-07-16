@@ -12,3 +12,4 @@ class ProjectMODELS(BaseModel):
     name : str
     description : str
     owner_email : str
+
