@@ -37,7 +37,7 @@ async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncS
     if not prod.owner_id:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="You are not owner")
    
-    await db.execute(update(ProjectDB).values(name = project.name,description = project.description))
+    await db.execute(update(ProjectDB).filter(ProjectDB.id == id).values(name = project.name,description = project.description))
     await db.commit()
     return "Success"
     
