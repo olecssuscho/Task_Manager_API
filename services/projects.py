@@ -23,7 +23,7 @@ async def get_project_services(user:UserDB,db:AsyncSession):
 
 async def get_project_id_services(id:int,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(ProjectMemberDB).filter((ProjectMemberDB.user_id == user.id),(ProjectDB.id ==id)))
-    result = stmt.scalars().all()
+    result = stmt.scalar_one_or_none()
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
     return result
