@@ -24,7 +24,7 @@ async def delete_member_services(project_id:int,user_id:int,user:UserDB,db:Async
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project did not found")
     user_db = await db.execute(select(ProjectMemberDB).filter(ProjectMemberDB.user_id == user_id))
-    if user_db.scalar_one_or_none() is None:
+    if user_db.scalars().all() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User did not found")
     await db.execute(delete(ProjectMemberDB).filter(ProjectMemberDB.user_id == user_id))
     await db.commit()
