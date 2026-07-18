@@ -13,13 +13,11 @@ router = APIRouter(prefix="/user",tags=["Users"])
 
 @router.post("/register")
 async def register(user:UserMODELS,db:AsyncSession = Depends(get_db)):
-    result = await register_services(user,db)
-    return result
+    return await register_services(user,db)
 
 @router.post("/login")
 async def login(form_data:OAuth2PasswordRequestForm = Depends(),db:AsyncSession = Depends(get_db)):
-    result = await login_services(form_data,db)
-    return result
+    return await login_services(form_data,db)
 
 @router.get("/me")
 async def get_me(user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):

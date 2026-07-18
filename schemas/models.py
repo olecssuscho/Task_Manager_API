@@ -14,6 +14,10 @@ class ProjectMODELS(BaseModel):
     description : str
     owner_email : str
 
+class ProjectUpdateMODELS(BaseModel):
+    name : str
+    description : str
+
 class TaskMODELS(BaseModel):
     title : str
     description : str
