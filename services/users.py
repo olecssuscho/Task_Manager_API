@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from schemas.dbmodels import UserDB
 from fastapi.security import OAuth2PasswordRequestForm
-from auth import check_password, create_access_token, create_refresh_token,hash_password
+from auth import check_password, create_access_token, create_refresh_token, decode_token,hash_password
 
 async def register_services(user:UserDB,db:AsyncSession):
     refresh_token = create_refresh_token({"email":user.email})
@@ -23,3 +23,24 @@ async def login_services(form_data:OAuth2PasswordRequestForm,db:AsyncSession):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Password is not correct")
     access_token = create_access_token({"email": user.email})
     return {"access_token": access_token, "refresh_token": user.refresh_token,"token_type": "bearer"}
+
+async def get_services(user:UserDB,db:AsyncSession):
+    stmt = await db.execute(select(UserDB).filter(UserDB.id == user.id))
+    user = stmt.scalar_one_or_none()
+    return user
+
+async def refresh_services(user:UserDB,db:AsyncSession):
+    refresh = decode_token(user.refresh_token)
+    if not refresh:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")
+    if not "email" in refresh:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")
+    if refresh.get("type")!="refresh":
+        raise HTTPException(status_code=401, detail="Invalid token type")
+    stmt = await db.execute(select(UserDB).filter(UserDB.email == refresh["email"]))
+    user = stmt.scalar_one_or_none
+    if user:
+        access = create_access_token({"email": refresh["email"]})
+        return {"access_token": access, "token_type": "bearer"}
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
