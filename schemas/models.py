@@ -27,5 +27,4 @@ class TaskMODELS(BaseModel):
     project_id : int
     assignee_email : str
 
-class ProjectMemberUpdateMODELS(BaseModel):
-    role : Literal["viewer","editor","owner"]
+
