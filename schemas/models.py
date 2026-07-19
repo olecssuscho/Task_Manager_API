@@ -32,4 +32,3 @@ class ProjectMemberUpdateMODELS(BaseModel):
 
 class CommentMODELS(BaseModel):
     text : str
-    user_id : int

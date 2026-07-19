@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import project_members,users,projects,tasks
+from routers import project_members,users,projects,tasks,comments
 app = FastAPI()
 
 @app.get("/")
@@ -10,3 +10,4 @@ app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(project_members.router)
 app.include_router(tasks.router)
+app.include_router(comments.router)
