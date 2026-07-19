@@ -21,7 +21,7 @@ def create_refresh_token(data:dict)->str:
 def create_access_token(data:dict)->str:
     to_encode = data.copy()
     to_encode.update({"type":"access"})
-    exp = datetime.now(timezone.utc) + timedelta(days=settings.ACCESS_TOKEN_TIME_MINUTES)
+    exp = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_TIME_MINUTES)
     to_encode.update({"exp":exp})
     return jwt.encode(to_encode,settings.SECRET_KEY,settings.ALGHORITHM)
 

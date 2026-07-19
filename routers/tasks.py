@@ -20,7 +20,7 @@ async def get_all_tasks(id:int,user:UserMODELS = Depends(get_current_user),db:As
 
 @router.put("/{id}")
 async def update_task(id:int,task:TaskMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await update_task_services(id,task,user,db)
+    return await update_task_services(id,task,task.assignee_email,user,db)
 
 @router.delete("/{id}")
 async def delete_task(id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):

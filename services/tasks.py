@@ -5,7 +5,9 @@ from schemas.dbmodels import TaskDB, UserDB
 
 async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(UserDB).filter(UserDB.email == asiigne_email))
-    user_db = await db.execute(select(UserDB).filter(UserDB.email == user.email)) 
+    result = stmt.scalar_one_or_none()
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User did not found")
     task_db = TaskDB(
         title = task.title,
         description = task.description,
@@ -13,8 +15,8 @@ async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:Asy
         priority = task.priority,
         deadline = task.deadline,
         project_id = task.project_id,
-        assignee_id = stmt.scalar_one_or_none().id,
-        created_by = user_db.scalar_one_or_none().id
+        assignee_id = result.id,
+        created_by = user.id
     )
     db.add(task_db)
     await db.commit()
@@ -26,12 +28,12 @@ async def get_all_tasks_services(id:int,user:UserDB,db:AsyncSession):
     result = stmt.scalars().all()
     return result
 
-async def update_task_services(id:int,task:TaskDB,user:UserDB,db:AsyncSession):
+async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(TaskDB).filter(TaskDB.id == id))
     result = stmt.scalar_one_or_none()
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
-    user_db = await db.execute(select(UserDB).filter(TaskDB.assignee_id == UserDB.id))
+    user_db = await db.execute(select(UserDB).filter(task_email == UserDB.email))
     user_id = user_db.scalar_one_or_none().id
     await db.execute(update(TaskDB).filter(TaskDB.id == id).values(
         title = task.title, description = task.description,
