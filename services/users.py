@@ -38,7 +38,7 @@ async def refresh_services(user:UserDB,db:AsyncSession):
     if refresh.get("type")!="refresh":
         raise HTTPException(status_code=401, detail="Invalid token type")
     stmt = await db.execute(select(UserDB).filter(UserDB.email == refresh["email"]))
-    user = stmt.scalar_one_or_none
+    user = stmt.scalar_one_or_none()
     if user:
         access = create_access_token({"email": refresh["email"]})
         return {"access_token": access, "token_type": "bearer"}

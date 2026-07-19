@@ -4,12 +4,10 @@ from sqlalchemy import select,update,delete
 from schemas.dbmodels import ProjectDB,UserDB,ProjectMemberDB
 
 async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession):
-    owner = await db.execute(select(UserDB).filter(UserDB.email == user.email))
-    owner_id_db = owner.scalar_one_or_none().id
     project_db = ProjectDB(
         name = project.name,
         description = project.description,
-        owner_id = owner_id_db
+        owner_id = user.id
     )
     db.add(project_db)
     await db.commit()
@@ -22,7 +20,7 @@ async def get_project_services(user:UserDB,db:AsyncSession):
     return result
 
 async def get_project_id_services(id:int,user:UserDB,db:AsyncSession):
-    stmt = await db.execute(select(ProjectMemberDB).filter((ProjectMemberDB.user_id == user.id),(ProjectDB.id ==id)))
+    stmt = await db.execute(select(ProjectMemberDB).filter((ProjectMemberDB.user_id == user.id),(ProjectMemberDB.project_id ==id)))
     result = stmt.scalar_one_or_none()
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
@@ -34,7 +32,7 @@ async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncS
     if not prod:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
     
-    if not prod.owner_id:
+    if prod.owner_id != user.id:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="You are not owner")
    
     await db.execute(update(ProjectDB).filter(ProjectDB.id == id).values(name = project.name,description = project.description))
@@ -47,7 +45,7 @@ async def delete_project_services(id:int,user:UserDB,db:AsyncSession):
     if not prod:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
     
-    if not prod.owner_id:
+    if prod.owner_id != user.id:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="You are not owner")
    
     await db.execute(delete(ProjectDB).filter(ProjectDB.id ==id))
