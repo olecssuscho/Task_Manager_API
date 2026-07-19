@@ -29,3 +29,8 @@ class TaskMODELS(BaseModel):
 
 class ProjectMemberUpdateMODELS(BaseModel):
     role : Literal["viewer","editor","owner"]
+
+class CommentMODELS(BaseModel):
+    text : str
+    user_id : int
+    task_id : int
