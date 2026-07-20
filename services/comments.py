@@ -11,7 +11,7 @@ async def create_comment_services(task_id:int,comment:CommentDB,user:UserDB,db:A
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
     await get_role(result.project_id,"editor",user,db)
     commenter = await db.execute(select(TaskDB).filter((TaskDB.created_by == user.id) | (TaskDB.assignee_id == user.id)))
-    commenter_db = commenter.scalars().all
+    commenter_db = commenter.scalars().all()
     if not commenter_db:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your task")
     else:
@@ -24,7 +24,6 @@ async def create_comment_services(task_id:int,comment:CommentDB,user:UserDB,db:A
 async def get_comment_services(task_id:int,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(TaskDB).filter(TaskDB.id == task_id))
     result = stmt.scalar_one_or_none()
-    await get_role(result.project_id,"viewer",user,db)
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
     await get_role(result.project_id,"viewer",user,db)

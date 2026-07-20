@@ -5,7 +5,6 @@ from schemas.dbmodels import ProjectDB,UserDB,ProjectMemberDB
 from depends import get_role
 
 async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession):
-    await get_role(project.id,"owner",user,db)
     project_db = ProjectDB(
         name = project.name,
         description = project.description,
@@ -14,12 +13,12 @@ async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession)
     db.add(project_db)
     await db.commit()
     await db.refresh(project_db)
+    project_member_db = ProjectMemberDB(project_id=project_db.id, user_id=user.id, role="owner")
+    await db.add(project_member_db)
+    await db.commit()
     return project_db
 
 async def get_project_services(user:UserDB,db:AsyncSession):
-    stmt = await db.execute(select(ProjectMemberDB).filter(ProjectMemberDB.user_id == user.id))
-    project = stmt.scalar_one_or_none()
-    await get_role(project.project_id,"viewer",user,db)
     projects = await db.execute(select(ProjectMemberDB).filter(ProjectMemberDB.user_id == user.id))
     return projects.scalars().all()
 

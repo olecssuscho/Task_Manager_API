@@ -33,12 +33,11 @@ async def get_all_tasks_services(id:int,user:UserDB,db:AsyncSession):
     return result
 
 async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:AsyncSession):
-    await get_role(task.project_id,"editor",user,db)
-
     stmt = await db.execute(select(TaskDB).filter(TaskDB.id == id))
     result = stmt.scalar_one_or_none()
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
+    await get_role(result.project_id,"editor",user,db)
     user_db = await db.execute(select(UserDB).filter(task_email == UserDB.email))
     assigne = user_db.scalar_one_or_none()
     if not assigne:
@@ -53,16 +52,11 @@ async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:
     return "Success"
 
 async def delete_task_services(id:int,user:UserDB,db:AsyncSession):
-    await get_role(id,"editor",user,db)
     task = await db.execute(select(TaskDB).filter(TaskDB.id == id))
     task_db = task.scalar_one_or_none()
     if not task_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
-    User = await db.execute(select(TaskDB).filter(TaskDB.id == id,TaskDB.created_by == user.id))
-    user_db = User.scalar_one_or_none()
-    if not user_db:
-        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="It is not your task")
-    
+    await get_role(task_db.project_id,"editor",user,db) 
     await db.execute(delete(TaskDB).filter(TaskDB.id == id,TaskDB.created_by == user.id))
     await db.commit()
     return "Success"
