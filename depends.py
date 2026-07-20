@@ -4,8 +4,7 @@ from database import Async_Session_Local
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
-from schemas.dbmodels import UserDB
+from schemas.dbmodels import UserDB,ProjectMemberDB
 
 user_schema = OAuth2PasswordBearer(tokenUrl="/user/login")
 
@@ -25,3 +24,13 @@ async def get_current_user(token:str = Depends(user_schema),db:AsyncSession = De
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User with that credentials no found")
         return user
+    
+async def get_role(project_id:int,min_role:str,user:UserDB,db:AsyncSession):
+    ROLE = {"viewer":1,"editor":2,"owner":3}
+    stmt = await db.execute(select(ProjectMemberDB).filter(ProjectMemberDB.project_id == project_id, ProjectMemberDB.user_id == user.id))
+    allow = stmt.scalar_one_or_none()
+    if not allow:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a project member")
+    if ROLE[allow.role]<ROLE[min_role]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    return allow
