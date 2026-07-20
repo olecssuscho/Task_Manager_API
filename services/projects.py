@@ -2,8 +2,10 @@ from fastapi import HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,update,delete
 from schemas.dbmodels import ProjectDB,UserDB,ProjectMemberDB
+from depends import get_role
 
 async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession):
+    await get_role(project.id,"owner",user,db)
     project_db = ProjectDB(
         name = project.name,
         description = project.description,
@@ -16,10 +18,13 @@ async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession)
 
 async def get_project_services(user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(ProjectMemberDB).filter(ProjectMemberDB.user_id == user.id))
-    result = stmt.scalars().all()
-    return result
+    project = stmt.scalar_one_or_none()
+    await get_role(project.project_id,"viewer",user,db)
+    projects = await db.execute(select(ProjectMemberDB).filter(ProjectMemberDB.user_id == user.id))
+    return projects.scalars().all()
 
 async def get_project_id_services(id:int,user:UserDB,db:AsyncSession):
+    await get_role(id,"viewer",user,db)
     stmt = await db.execute(select(ProjectMemberDB).filter((ProjectMemberDB.user_id == user.id),(ProjectMemberDB.project_id ==id)))
     result = stmt.scalar_one_or_none()
     if not result:
@@ -27,6 +32,7 @@ async def get_project_id_services(id:int,user:UserDB,db:AsyncSession):
     return result
 
 async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncSession):
+    await get_role(id,"owner",user,db)
     result = await db.execute(select(ProjectDB).filter(ProjectDB.id == id))
     prod = result.scalar_one_or_none()
     if not prod:
@@ -40,6 +46,7 @@ async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncS
     return "Success"
     
 async def delete_project_services(id:int,user:UserDB,db:AsyncSession):
+    await get_role(id,"owner",user,db)
     result = await db.execute(select(ProjectDB).filter(ProjectDB.id == id))
     prod = result.scalar_one_or_none()
     if not prod:
