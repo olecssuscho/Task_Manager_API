@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,update,delete
 from schemas.dbmodels import TaskDB,UserDB
 from depends import get_role
+from websocket import manager
+
 
 async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:AsyncSession):
     await get_role(task.project_id,"editor",user,db)  
@@ -23,6 +25,7 @@ async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:Asy
     db.add(task_db)
     await db.commit()
     await db.refresh(task_db)
+    await manager.broadcast(task_db.project_id,"Task created")
     return task_db
 
 async def get_all_tasks_services(id:int,user:UserDB,db:AsyncSession):
@@ -49,6 +52,7 @@ async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:
         assignee_id = assigne.id
     ))
     await db.commit()
+    await manager.broadcast(task.project_id,"Task updated")
     return "Success"
 
 async def delete_task_services(id:int,user:UserDB,db:AsyncSession):
@@ -57,6 +61,7 @@ async def delete_task_services(id:int,user:UserDB,db:AsyncSession):
     if not task_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
     await get_role(task_db.project_id,"editor",user,db) 
-    await db.execute(delete(TaskDB).filter(TaskDB.id == id,TaskDB.created_by == user.id))
+    await db.execute(delete(TaskDB).filter(TaskDB.id == id))
     await db.commit()
+    await manager.broadcast(task_db.project_id,"Task deleted")
     return "Success"

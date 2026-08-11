@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from routers import project_members,users,projects,tasks,comments
+import websocket
 app = FastAPI()
 
 @app.get("/")
@@ -11,3 +12,5 @@ app.include_router(projects.router)
 app.include_router(project_members.router)
 app.include_router(tasks.router)
 app.include_router(comments.router)
+app.include_router(websocket.router)
+
