@@ -41,11 +41,10 @@ async def delete_comment_services(id:int,user:UserDB,db:AsyncSession):
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment did not found")
     project = await db.execute(select(TaskDB).filter(TaskDB.id == result.task_id))
-    project_id = project.scalar_one_or_none()
-    await get_role(project_id.project_id,"editor",user,db)
+    task = project.scalar_one_or_none()
+    project_id = task.project_id
+    await get_role(task.project_id,"editor",user,db)
     await db.execute(delete(CommentDB).filter(CommentDB.id == id))
     await db.commit()
-    del_project = await db.execute(select(TaskDB).filter(TaskDB.id == result.task_id))
-    del_project_id = del_project.scalar_one_or_none()
-    await manager.broadcast(del_project_id.project_id,"Comment deleted")
+    await manager.broadcast(project_id,"Comment deleted")
     return "Success"

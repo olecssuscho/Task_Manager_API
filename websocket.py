@@ -29,7 +29,7 @@ class WebSocketManager():
         for user_id,websocket in list(users.items()):
             try:
                 await websocket.send_text(message)
-            except WebSocketException:
+            except Exception:
                 await self.disconnect(project_id, user_id)
                 
 manager = WebSocketManager()

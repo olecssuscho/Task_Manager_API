@@ -45,7 +45,7 @@ class TaskDB(Base):
     id : Mapped[int] = mapped_column(primary_key=True, autoincrement=True)   
     title : Mapped[str]
     description : Mapped[str]
-    status : Mapped[str] = mapped_column(Enum("todo","in_progress","review","done", name = "status"), default = "todo")  
+    status : Mapped[str] = mapped_column(Enum("todo","in_progress","review","done","overdue", name = "status"), default = "todo")  
     priority : Mapped[str] = mapped_column(Enum("low","medium","high",name = "priority"), default = "medium")   
     deadline : Mapped[datetime] = mapped_column(DateTime(timezone=True))
     project_id : Mapped[int] = mapped_column(ForeignKey("Projects.id")) 
