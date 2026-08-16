@@ -1,5 +1,5 @@
 from typing import Dict
-from fastapi import Depends, WebSocket,WebSocketException,WebSocketDisconnect,APIRouter
+from fastapi import Depends, WebSocket,WebSocketDisconnect,APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from auth import decode_token
