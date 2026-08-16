@@ -20,7 +20,7 @@ class TaskRESPONCES(BaseModel):
     project_id : int
     assignee_id : int
 
-class CommentDB(BaseModel):
+class CommentRESPONCES(BaseModel):
     
     id : int
     text : str
