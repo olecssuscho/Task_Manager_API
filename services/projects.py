@@ -1,5 +1,6 @@
 from fastapi import HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select,update,delete
 from schemas.dbmodels import ProjectDB,UserDB,ProjectMemberDB
 from depends import get_role
@@ -19,8 +20,8 @@ async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession)
     return project_db
 
 async def get_project_services(user:UserDB,db:AsyncSession):
-    projects = await db.execute(select(ProjectMemberDB).filter(ProjectMemberDB.user_id == user.id))
-    return projects.scalars().all()
+    projects = (select(ProjectDB).filter(ProjectMemberDB.user_id == user.id, ProjectMemberDB.project_id == ProjectDB.id))
+    return await apaginate(db,projects)
 
 async def get_project_id_services(id:int,user:UserDB,db:AsyncSession):
     await get_role(id,"viewer",user,db)

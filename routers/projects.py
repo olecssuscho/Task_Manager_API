@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
+from fastapi_pagination import Page
 from schemas.models import ProjectMODELS,UserMODELS,ProjectUpdateMODELS
+from schemas.responces import ProjectRESPONCES
 from depends import get_current_user, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.projects import (
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/project",tags=["Projects"])
 async def create_project(project:ProjectMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await create_project_services(project,user,db)
 
-@router.get("/")
+@router.get("/",response_model=Page[ProjectRESPONCES])
 async def get_project(user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await get_project_services(user,db)
 

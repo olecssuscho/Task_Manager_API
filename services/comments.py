@@ -1,5 +1,6 @@
 from sqlalchemy import select,delete
 from fastapi import HTTPException,status
+from fastapi_pagination.ext.sqlalchemy import paginate
 from schemas.dbmodels import UserDB,CommentDB,TaskDB
 from sqlalchemy.ext.asyncio import AsyncSession
 from depends import get_role
@@ -31,9 +32,8 @@ async def get_comment_services(task_id:int,user:UserDB,db:AsyncSession):
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
     await get_role(result.project_id,"viewer",user,db)
-    comm = await db.execute(select(CommentDB).filter(CommentDB.task_id == task_id))
-    res = comm.scalars().all()
-    return res
+    comm = (select(CommentDB).filter(CommentDB.task_id == task_id))
+    return await paginate(db,comm)
     
 async def delete_comment_services(id:int,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(CommentDB).filter(CommentDB.id == id))

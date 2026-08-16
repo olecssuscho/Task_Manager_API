@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 from schemas.models import TaskMODELS,UserMODELS
+from schemas.responces import TaskRESPONCES
+from fastapi_pagination import Page
 from depends import get_current_user, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.tasks import (
@@ -14,7 +16,7 @@ router = APIRouter(prefix="/task",tags=["Tasks"])
 async def create_tasks(task:TaskMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await create_tasks_services(task,task.assignee_email,user,db)
 
-@router.get("/{id}/tasks")
+@router.get("/{id}/tasks",response_model=Page[TaskRESPONCES])
 async def get_all_tasks(id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await get_all_tasks_services(id,user,db)
 

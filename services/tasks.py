@@ -1,4 +1,5 @@
 from fastapi import HTTPException,status
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,update,delete
 from schemas.dbmodels import TaskDB,UserDB
@@ -31,9 +32,8 @@ async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:Asy
 async def get_all_tasks_services(id:int,user:UserDB,db:AsyncSession):
     await get_role(id,"viewer",user,db)
 
-    stmt = await db.execute(select(TaskDB).filter(TaskDB.project_id == id))
-    result = stmt.scalars().all()
-    return result
+    stmt = select(TaskDB).filter(TaskDB.project_id == id)
+    return await paginate(db,stmt)
 
 async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(TaskDB).filter(TaskDB.id == id))
