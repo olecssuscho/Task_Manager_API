@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from schemas.models import UserMODELS
 from depends import get_current_user, get_db
@@ -8,15 +8,18 @@ from services.users import (
     login_services,
     get_services,
     refresh_services)
+from lim import limiter
 
 router = APIRouter(prefix="/user",tags=["Users"])
 
 @router.post("/register")
-async def register(user:UserMODELS,db:AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request:Request,user:UserMODELS,db:AsyncSession = Depends(get_db)):
     return await register_services(user,db)
 
 @router.post("/login")
-async def login(form_data:OAuth2PasswordRequestForm = Depends(),db:AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request:Request,form_data:OAuth2PasswordRequestForm = Depends(),db:AsyncSession = Depends(get_db)):
     return await login_services(form_data,db)
 
 @router.get("/me")
