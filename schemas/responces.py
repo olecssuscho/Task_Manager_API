@@ -21,6 +21,7 @@ class TaskRESPONCES(BaseModel):
     assignee_id : int
 
 class CommentRESPONCES(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     
     id : int
     text : str

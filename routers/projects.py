@@ -13,7 +13,7 @@ from services.projects import (
 
 router = APIRouter(prefix="/project",tags=["Projects"])
 
-@router.post("/register")
+@router.post("/create")
 async def create_project(project:ProjectMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await create_project_services(project,user,db)
 
