@@ -6,17 +6,19 @@ from schemas.dbmodels import ProjectDB,UserDB,ProjectMemberDB
 from depends import get_role
 
 async def create_project_services(project:ProjectDB,user:UserDB,db:AsyncSession):
+    owner_id = user.id
     project_db = ProjectDB(
         name = project.name,
         description = project.description,
-        owner_id = user.id
+        owner_id = owner_id
     )
     db.add(project_db)
     await db.commit()
     await db.refresh(project_db)
-    project_member_db = ProjectMemberDB(project_id=project_db.id, user_id=user.id, role="owner")
+    project_member_db = ProjectMemberDB(project_id=project_db.id, user_id=owner_id, role="owner")
     db.add(project_member_db)
     await db.commit()
+    await db.refresh(project_db)
     return project_db
 
 async def get_project_services(user:UserDB,db:AsyncSession):

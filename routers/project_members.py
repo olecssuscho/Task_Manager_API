@@ -6,14 +6,14 @@ from services.project_members import add_member_id_services,delete_member_servic
 
 router = APIRouter(prefix="/project_member",tags=["Project_members"])
 
-@router.post("/project/{id}/member/{user_id}")
-async def add_member(id:int,user_id:int,role:ProjectMemberUpdateMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await add_member_id_services(id,user_id,role,user,db)
+@router.post("/project/{id}/member/{user_email}")
+async def add_member(id:int,user_email:str,role:ProjectMemberUpdateMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await add_member_id_services(id,user_email,role,user,db)
 
-@router.delete("/project/{id}/member/{user_id}")
-async def delete_member(id:int,user_id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await delete_member_services(id,user_id,user,db)
+@router.delete("/project/{id}/member/{user_email}")
+async def delete_member(id:int,user_email:str,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await delete_member_services(id,user_email,user,db)
 
-@router.patch("/{id}/member/{user_id}")
-async def patch_member(id:int,user_id:int,role:ProjectMemberUpdateMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await patch_member_services(id,user_id,role,user,db)
+@router.patch("/project/{id}/member/{user_email}")
+async def patch_member(id:int,user_email:str,role:ProjectMemberUpdateMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await patch_member_services(id,user_email,role,user,db)
