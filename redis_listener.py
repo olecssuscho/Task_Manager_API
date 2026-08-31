@@ -2,7 +2,7 @@ import json
 import redis.asyncio as redis
 from websocket import manager
 
-r = redis.Redis(host="localhost", port=6379)
+r = redis.Redis(host="redis", port=6379)
 
 async def listener():
     pubsub = r.pubsub()
