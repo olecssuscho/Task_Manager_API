@@ -27,3 +27,12 @@ class CommentRESPONCES(BaseModel):
     text : str
     task_id : int
     user_id : int
+
+class AttachmentRESPONCES(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    filename: str
+    content_type: str
+    size_bytes: int
+    uploaded_by: int
+    created_at: datetime

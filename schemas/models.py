@@ -33,9 +33,7 @@ class ProjectMemberUpdateMODELS(BaseModel):
 class CommentMODELS(BaseModel):
     text : str
 
-class AttachmentRESPONCES(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
+class AttachmentMODELS(BaseModel):
     filename: str
     content_type: str
     size_bytes: int
