@@ -32,10 +32,3 @@ class ProjectMemberUpdateMODELS(BaseModel):
 
 class CommentMODELS(BaseModel):
     text : str
-
-class AttachmentMODELS(BaseModel):
-    filename: str
-    content_type: str
-    size_bytes: int
-    uploaded_by: int
-    created_at: datetime
