@@ -15,8 +15,6 @@ services:
 
   postgres:
     image: postgres:16
-    env_file:
-      - ".env"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123qwe
@@ -43,7 +41,7 @@ services:
 
   celery_worker:
     build: .
-    command: "Celery -A celery_app worker --loglevel=info"
+    command: "celery -A celery_app worker --loglevel=info"
     env_file:
       - ".env"
     depends_on:
@@ -54,7 +52,7 @@ services:
 
   celery-beat:
     build: .
-    command: "Celery -A celery_app beat --loglevel=info"
+    command: "celery -A celery_app beat --loglevel=info"
     env_file:
       - ".env"
     depends_on:

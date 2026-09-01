@@ -1,0 +1,43 @@
+services:
+  test:
+    build: 
+      context: .
+      dockerfile: dockerfile
+    command: "pytest -v"
+    env_file:
+      - ".env"
+    environment:
+      DB_URL: "postgresql+asyncpg://postgres:123qwe@postgres-test:5432/Task_Manager_DB_test"
+      DB_URL_SYNC: "postgresql+psycopg2://postgres:123qwe@postgres-test:5432/Task_Manager_DB_test"
+      REDIS_URL: "redis://redis-test:6379/0"
+      TESTING: "1"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+
+  postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123qwe
+      POSTGRES_DB: Task_Manager_DB_test
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  redis-test:
+    image: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

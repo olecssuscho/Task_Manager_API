@@ -10,11 +10,11 @@ from sqlalchemy import delete
 from schemas.dbmodels import Base
 from httpx import AsyncClient, ASGITransport
 
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
+TEST_DATABASE_URL = os.getenv("DB_URL")
 
 @pytest_asyncio.fixture(autouse=True)
 async def clear_db():
-    engine = create_async_engine(url=TEST_DATABASE_URL, echo=True)  
+    engine = create_async_engine(url=TEST_DATABASE_URL)  
     Session = async_sessionmaker(engine, autocommit=False, autoflush=False)
 
     async def override_get_db():
