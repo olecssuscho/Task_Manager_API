@@ -63,3 +63,16 @@ class CommentDB(Base):
     task_id : Mapped[int] = mapped_column(ForeignKey("Tasks.id"))
     user_id : Mapped[int] = mapped_column(ForeignKey("Users.id"))
     created_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
+
+class AttachmentDB(Base):
+
+    __tablename__ = "Attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    filename: Mapped[str]
+    file_path: Mapped[str]
+    content_type: Mapped[str]
+    size_bytes: Mapped[int]
+    task_id: Mapped[int] = mapped_column(ForeignKey("Tasks.id"))
+    uploaded_by: Mapped[int] = mapped_column(ForeignKey("Users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
