@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 import os
 from fastapi import FastAPI
-from routers import project_members,users,projects,tasks,comments
+from routers import project_members,users,projects,tasks,comments,files
 from fastapi_pagination import add_pagination
 import websocket
 import asyncio
@@ -29,6 +29,7 @@ app.include_router(project_members.router)
 app.include_router(tasks.router)
 app.include_router(comments.router)
 app.include_router(websocket.router)
+app.include_router(files.router)
 
 add_pagination(app)
 app.state.limiter = limiter

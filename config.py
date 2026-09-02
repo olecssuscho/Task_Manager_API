@@ -1,3 +1,4 @@
+import os
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
@@ -10,6 +11,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_TIME_MINUTES:int
     ALGORITHM:str
     SECRET_KEY:str
-    model_config = ConfigDict(env_file = ".env", env_file_encoding = "utf-8")
+    UPLOAD_DIR: str 
+    MAX_FILE_SIZE:int
+    model_config = ConfigDict(env_file = ".env.local", env_file_encoding = "utf-8")
 
 settings = Settings()
