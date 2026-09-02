@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 import redis as sync_redis
 from config import settings
 
-redis_client = sync_redis.Redis(host="redis", port=6379, db=0)
+redis_client = sync_redis.Redis(host="localhost", port=6379, db=0)
 engine = create_engine(settings.DB_URL_SYNC)
 
 session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
