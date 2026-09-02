@@ -5,7 +5,7 @@ services:
       dockerfile: dockerfile
     command: "pytest -v"
     env_file:
-      - ".env"
+      - ".env.docker"
     environment:
       DB_URL: "postgresql+asyncpg://postgres:123qwe@postgres-test:5432/Task_Manager_DB_test"
       DB_URL_SYNC: "postgresql+psycopg2://postgres:123qwe@postgres-test:5432/Task_Manager_DB_test"
