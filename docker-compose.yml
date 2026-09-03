@@ -7,6 +7,8 @@ services:
       - "8080:8080"
     env_file:
       - ".env.docker"
+    volumes:
+      -  uploaded_files:/code/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,7 +54,7 @@ services:
 
   celery-beat:
     build: .
-    command: "celery -A celery_app beat --loglevel=info"
+    command: "celery -A celery_app beat --loglevel=info --schedule=/tmp/celery-beat"
     env_file:
       - ".env.docker"
     depends_on:
@@ -63,3 +65,4 @@ services:
 
 volumes:
   postgres_data:
+  uploaded_files:
