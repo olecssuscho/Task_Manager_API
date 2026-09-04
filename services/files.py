@@ -1,4 +1,6 @@
 import os 
+import io
+import minio
 from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.dbmodels import AttachmentDB, TaskDB,UserDB
@@ -33,18 +35,18 @@ async def upload_file_services(file:UploadFile, original_filename:str, task_id:i
 
     content = await file.read()
 
-    path = os.path.join(settings.UPLOAD_DIR,uniq_name)
+    customer = minio.Minio(settings.MINIO_ENDPOINT,settings.MINIO_ACCESS_KEY,settings.MINIO_SECRET_KEY,secure=False)
 
-    with open(path, "wb") as f:
-        f.write(content)
-
-    content_type,_ = mimetypes.guess_type(path)
+    content_type,_ = mimetypes.guess_type(uniq_name)
     if not content_type:
         content_type = "application/octet-stream"
 
+    customer.put_object(bucket_name=settings.MINIO_BUCKET,object_name=uniq_name,
+                        data=io.BytesIO(content),length=file.size,content_type=content_type)
+
     file_db = AttachmentDB(
         filename = file.filename,
-        file_path = path,
+        file_path = uniq_name,
         content_type = content_type,
         size_bytes = file.size,
         task_id = task_id,
