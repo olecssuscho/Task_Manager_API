@@ -7,12 +7,12 @@ services:
       - "8080:8080"
     env_file:
       - ".env.docker"
-    volumes:
-      -  uploaded_files:/code/uploads
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   postgres:
@@ -63,6 +63,22 @@ services:
       redis:
         condition: service_healthy
 
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio:/data
+    env_file:
+      - ".env.docker"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
-  uploaded_files:
+  minio:
