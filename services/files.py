@@ -9,17 +9,24 @@ from depends import get_role
 import mimetypes
 
 
-async def upload_file_services(file:UploadFile, original_filename:str, task_id:TaskDB, user:UserDB, db:AsyncSession):
+async def upload_file_services(file:UploadFile, original_filename:str, task_id:int, user:UserDB, db:AsyncSession):
 
-    await get_role(task_id.project_id,"editor",user,db)
+    task = await db.execute(select(TaskDB).filter(TaskDB.id == task_id))
+
+    task_db = task.scalar_one_or_none()
+
+    if not task_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    project_id = task_db.project_id
+
+    if not project_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    
+    await get_role(project_id,"editor",user,db)
 
     if file.size > settings.MAX_FILE_SIZE:
         raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="File size too big")
-
-    stmt = await db.execute(select(TaskDB).filter(TaskDB.id == task_id.id, TaskDB.project_id == task_id.project_id))
-
-    if not stmt.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task or project not found")
 
     extension = os.path.splitext(original_filename)[1]
     uniq_name = f"{uuid4()}{extension}"
@@ -40,7 +47,7 @@ async def upload_file_services(file:UploadFile, original_filename:str, task_id:T
         file_path = path,
         content_type = content_type,
         size_bytes = file.size,
-        task_id = task_id.project_id,
+        task_id = task_id,
         uploaded_by = user.id
     )
 
@@ -48,20 +55,28 @@ async def upload_file_services(file:UploadFile, original_filename:str, task_id:T
     await db.commit()
     return "Success"
 
-async def download_file_services(original_filename:str, task_id:TaskDB, user:UserDB, db:AsyncSession):
-    stmt = await db.execute(select(TaskDB).filter(TaskDB.id == task_id.id, TaskDB.project_id == task_id.project_id))
+async def download_file_services(original_filename:str, task_id:int, user:UserDB, db:AsyncSession):
 
-    if not stmt.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task or project not found") 
+    task = await db.execute(select(TaskDB).filter(TaskDB.id == task_id))
+    
+    task_db = task.scalar_one_or_none()
 
-    file = await db.execute(select(AttachmentDB).filter(AttachmentDB.filename == original_filename,AttachmentDB.task_id == id))
+    if not task_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    project_id = task_db.project_id
+
+    if not project_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    
+    file = await db.execute(select(AttachmentDB).filter(AttachmentDB.filename == original_filename,AttachmentDB.task_id == task_id))
 
     file_real = file.scalar_one_or_none()
 
     if not file_real:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File is not found")
 
-    await get_role(task_id.project_id,"viewer",user,db)
+    await get_role(project_id,"viewer",user,db)
 
     return file_real
 
