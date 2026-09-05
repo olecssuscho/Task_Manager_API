@@ -11,7 +11,7 @@ from depends import get_role
 import mimetypes
 
 
-async def upload_file_services(file:UploadFile, original_filename:str, task_id:int, user:UserDB, db:AsyncSession):
+async def upload_file_services(bucket_name:str, file:UploadFile, original_filename:str, task_id:int, user:UserDB, db:AsyncSession):
 
     task = await db.execute(select(TaskDB).filter(TaskDB.id == task_id))
 
@@ -37,11 +37,14 @@ async def upload_file_services(file:UploadFile, original_filename:str, task_id:i
 
     customer = minio.Minio(settings.MINIO_ENDPOINT,settings.MINIO_ACCESS_KEY,settings.MINIO_SECRET_KEY,secure=False)
 
+    if not customer.bucket_exists(bucket_name):
+        customer.make_bucket(bucket_name=bucket_name)
+
     content_type,_ = mimetypes.guess_type(uniq_name)
     if not content_type:
         content_type = "application/octet-stream"
 
-    customer.put_object(bucket_name=settings.MINIO_BUCKET,object_name=uniq_name,
+    customer.put_object(bucket_name=bucket_name,object_name=uniq_name,
                         data=io.BytesIO(content),length=file.size,content_type=content_type)
 
     file_db = AttachmentDB(

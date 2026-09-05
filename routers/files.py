@@ -11,8 +11,8 @@ import minio
 router = APIRouter(prefix="/file", tags=["files"])
 
 @router.post("/upload")
-async def upload_file(file: UploadFile, task_id:int, user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await upload_file_services(file,file.filename,task_id,user,db)
+async def upload_file(bucket_name:str, file: UploadFile, task_id:int, user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await upload_file_services(bucket_name,file,file.filename,task_id,user,db)
 
 @router.get("/download")
 async def download_file(filename:str, task_id:int, user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
