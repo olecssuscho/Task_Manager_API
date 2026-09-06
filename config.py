@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY:str
     MINIO_SECRET_KEY:str  
     MINIO_BUCKET:str
+    API_KEY:str
     model_config = ConfigDict(env_file = ".env.local", env_file_encoding = "utf-8")
 
 settings = Settings()

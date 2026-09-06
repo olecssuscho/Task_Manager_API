@@ -8,6 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import redis as sync_redis
 from config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 redis_client = sync_redis.Redis.from_url(settings.REDIS_URL)
 engine = create_engine(settings.DB_URL_SYNC)
@@ -26,11 +29,20 @@ def task_deadline():
             task.status = "overdue"
             projects.append((task.project_id,task.title))
         db.commit()
-        for project_id, title in projects:
-            redis_client.publish("task_update",json.dumps({"project_id": project_id, "message": f"Task {title} is overdue"}))
+        logger.info(f"Marked {len(tasks)} tasks as overdue")
+    except Exception:
+        logger.exception("Failed to process overdue tasks")
+        db.rollback()
+        return
     finally:
         db.close()
 
+    for project_id, title in projects:
+        try:
+            redis_client.publish("task_update", json.dumps({"project_id": project_id, "message": f"Task {title} is overdue"}))
+        except Exception:
+            logger.exception(f"Failed to publish update for project {project_id}")
+    
 c_app.conf.beat_schedule = {
     "check-deadlines-daily": {
         "task": "celery_app.task_deadline",

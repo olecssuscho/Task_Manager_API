@@ -5,6 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth import decode_token
 from depends import get_db
 from schemas.dbmodels import ProjectMemberDB, UserDB
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -29,7 +32,8 @@ class WebSocketManager():
         for user_id,websocket in list(users.items()):
             try:
                 await websocket.send_text(message)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Failed to send to user {user_id} in project {project_id}: {e}")
                 await self.disconnect(project_id, user_id)
                 
 manager = WebSocketManager()
