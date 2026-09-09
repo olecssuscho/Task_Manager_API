@@ -1,3 +1,4 @@
+from datetime import datetime,timezone
 from anthropic import Anthropic
 from config import settings
 from schemas.models import TaskMODELS
@@ -18,7 +19,12 @@ def generate_task_data_from_text(text:str):
             - priority
             - deadline
             If priority is not explicitly specified, infer it.
-            Return the deadline as an ISO 8601 datetime."""
+            Return the deadline as an ISO 8601 datetime.
+            Important rules:
+            - Interpret relative dates such as "today", "tomorrow", "next week",
+              and "next month" relative to the Current date{datetime.now(timezone.utc)}.
+            - Do not invent a different current year.
+            - "next month" means the first day of the next calendar month."""
         }
         ],
         output_format=TaskMODELS
