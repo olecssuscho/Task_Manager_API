@@ -1,11 +1,16 @@
+from datetime import datetime
+import logging
 from fastapi import HTTPException,status
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,update,delete
 from schemas.dbmodels import TaskDB,UserDB
 from depends import get_role
+from schemas.models import TaskMODELS
 from websocket import manager
+from services.ai_client import generate_task_data_from_text
 
+logger = logging.getLogger(__name__)
 
 async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:AsyncSession):
     await get_role(task.project_id,"editor",user,db)  
@@ -65,3 +70,28 @@ async def delete_task_services(id:int,user:UserDB,db:AsyncSession):
     await db.commit()
     await manager.broadcast(task_db.project_id,"Task deleted")
     return "Success"
+
+async def create_from_text_services(text:str,project_id:int,assignee_email:str,user:UserDB,db:AsyncSession):
+    try:
+        ai_data = generate_task_data_from_text(text)
+    except Exception as e:
+        if "429" in str(e):
+            logger.warning("Claide rate limit exceeded")
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="AI rate limit reached, try again later")
+        logger.exception("AI service call failed")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI service unavailable")
+    try:
+        task_input = TaskMODELS(
+            title=ai_data.title,
+            description=ai_data.description,
+            priority=ai_data.priority,
+            deadline=datetime.fromisoformat(f"{ai_data.deadline}"),
+            project_id=project_id,
+            status="todo",
+            assignee_email = assignee_email
+        )
+    except Exception:
+        logger.warning(f"Task was not created: {task_input}")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Could not parse a valid task from the text")
+
+    return await create_tasks_services(task_input,assignee_email,user,db)

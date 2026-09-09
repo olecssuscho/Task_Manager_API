@@ -32,3 +32,8 @@ class ProjectMemberUpdateMODELS(BaseModel):
 
 class CommentMODELS(BaseModel):
     text : str
+
+class TaskFromTextRequest(BaseModel):
+    text: str
+    project_id: int
+    assignee_email: str
