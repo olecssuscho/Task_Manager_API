@@ -2,11 +2,14 @@ from datetime import datetime,timezone
 from anthropic import Anthropic
 from config import settings
 from schemas.models import TaskMODELS
+from voyageai.client import Client
 
-client = Anthropic(api_key=settings.API_KEY)
+voyage_client = Client(api_key=settings.VOYAGE_API_KEY)
+
+cluaud_client = Anthropic(api_key=settings.CLAUDE_API_KEY)
 
 def generate_task_data_from_text(text:str):
-    response = client.messages.parse(
+    response = cluaud_client.messages.parse(
         model="claude-opus-5",
         max_tokens=200,
         messages=[
@@ -30,3 +33,7 @@ def generate_task_data_from_text(text:str):
         output_format=TaskMODELS
     )
     return response.parsed_output
+
+def generate_embedding(text:str):
+    responce = voyage_client.embed(texts=text,model="voyage-3.5",input_type="document")
+    return responce.embeddings[0]

@@ -9,12 +9,13 @@ from services.tasks import (
     get_all_tasks_services,
     update_task_services,
     delete_task_services,
-    create_from_text_services)
+    create_from_text_services,
+    get_task_from_text)
 
 
 router = APIRouter(prefix="/task",tags=["Tasks"])
 
-@router.post("/create")
+@router.post("/create",response_model=TaskRESPONCES)
 async def create_tasks(task:TaskMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await create_tasks_services(task,task.assignee_email,user,db)
 
@@ -33,3 +34,7 @@ async def delete_task(id:int,user:UserMODELS = Depends(get_current_user),db:Asyn
 @router.post("/create-from-text")
 async def create_from_text(body:TaskFromTextRequest, user:UserMODELS = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
     return await create_from_text_services(body.text,body.project_id,body.assignee_email,user,db)
+
+@router.get("/search/{project_id}",response_model=list[TaskRESPONCES])
+async def get_from_text(text:str, project_id:int, user:UserMODELS = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
+    return await get_task_from_text(text,project_id,user,db)
