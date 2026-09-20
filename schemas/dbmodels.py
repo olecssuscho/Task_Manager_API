@@ -51,7 +51,7 @@ class TaskDB(Base):
     project_id : Mapped[int] = mapped_column(ForeignKey("Projects.id")) 
     assignee_id : Mapped[int] = mapped_column(ForeignKey("Users.id"),nullable=True) 
     created_by : Mapped[int] = mapped_column(ForeignKey("Users.id"))
-    embedding : Mapped[list] = mapped_column(Vector(100),nullable=True)
+    embedding : Mapped[list[float]] = mapped_column(Vector(1024),nullable=True)
     created_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
     updated_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))  
 
