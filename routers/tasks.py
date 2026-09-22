@@ -32,7 +32,7 @@ async def update_task(id:int,task:TaskMODELS,user:UserMODELS = Depends(get_curre
 async def delete_task(id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await delete_task_services(id,user,db)
 
-@router.post("/create-from-text")
+@router.post("/create-from-text",response_model=TaskRESPONCES)
 async def create_from_text(body:TaskFromTextRequest, user:UserMODELS = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
     return await create_from_text_services(body.text,body.project_id,body.assignee_email,user,db)
 
