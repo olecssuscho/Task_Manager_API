@@ -8,7 +8,7 @@ from schemas.dbmodels import TaskDB,UserDB
 from depends import get_role
 from schemas.models import TaskMODELS
 from websocket import manager
-from services.ai_client import generate_task_data_from_text, generate_embedding
+from services.ai_client import generate_task_data_from_text, generate_embedding,suggest
 
 logger = logging.getLogger(__name__)
 
@@ -116,4 +116,20 @@ async def get_task_from_text(text:str,project_id:int,user:UserDB,db:AsyncSession
     stmt = await db.execute(select(TaskDB).order_by(TaskDB.embedding.cosine_distance(vector)).limit(1))
     tasks = stmt.scalars()
     return tasks
-    
+
+async def suggest_services(title:str,description:str,user:UserDB,db:AsyncSession):
+    try:
+        sug = suggest([title,description])
+    except Exception as e:
+        if "429" in str(e):
+            logger.warning("Claude rate limit exceeded")
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="AI rate limit reached, try again later")
+        logger.exception("AI service call failed")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI service unavailable")
+
+    return {
+        "title": title,
+        "description":description,
+        "priority": sug.priority,
+        "reasoning": sug.reasoning
+    }

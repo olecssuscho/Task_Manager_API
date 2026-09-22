@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from schemas.models import TaskMODELS,UserMODELS,TaskFromTextRequest
+from schemas.models import TaskMODELS,UserMODELS,TaskFromTextRequest,SuggestMODELS
 from schemas.responces import TaskRESPONCES
 from fastapi_pagination import Page
 from depends import get_current_user, get_db
@@ -10,7 +10,8 @@ from services.tasks import (
     update_task_services,
     delete_task_services,
     create_from_text_services,
-    get_task_from_text)
+    get_task_from_text,
+    suggest_services)
 
 
 router = APIRouter(prefix="/task",tags=["Tasks"])
@@ -38,3 +39,7 @@ async def create_from_text(body:TaskFromTextRequest, user:UserMODELS = Depends(g
 @router.get("/search/{project_id}",response_model=list[TaskRESPONCES])
 async def get_from_text(text:str, project_id:int, user:UserMODELS = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
     return await get_task_from_text(text,project_id,user,db)
+
+@router.post("/suggest-priority")
+async def suggest(task:SuggestMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await suggest_services(task.title,task.description,user,db)
