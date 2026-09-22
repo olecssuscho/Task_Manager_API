@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel,ConfigDict
 from datetime import datetime
 
@@ -36,3 +38,8 @@ class AttachmentRESPONCES(BaseModel):
     size_bytes: int
     uploaded_by: int
     created_at: datetime
+
+class SuggestRESPONSES(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    priority: Literal["low","medium","high"]
+    reasoning: str

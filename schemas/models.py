@@ -37,3 +37,7 @@ class TaskFromTextRequest(BaseModel):
     text: str
     project_id: int
     assignee_email: str
+
+class SuggestMODELS(BaseModel):
+    title:str
+    description:str
