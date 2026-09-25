@@ -117,7 +117,8 @@ async def get_task_from_text(text:str,project_id:int,user:UserDB,db:AsyncSession
     tasks = stmt.scalars()
     return tasks
 
-async def suggest_services(title:str,description:str,user:UserDB,db:AsyncSession):
+async def suggest_services(project_id:int,title:str,description:str,user:UserDB,db:AsyncSession):
+    get_role(project_id,"editor",user,db)
     try:
         sug = suggest([title,description])
     except Exception as e:

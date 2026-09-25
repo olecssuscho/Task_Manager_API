@@ -40,6 +40,6 @@ async def create_from_text(body:TaskFromTextRequest, user:UserMODELS = Depends(g
 async def get_from_text(text:str, project_id:int, user:UserMODELS = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
     return await get_task_from_text(text,project_id,user,db)
 
-@router.post("/suggest-priority")
-async def suggest(task:SuggestMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await suggest_services(task.title,task.description,user,db)
+@router.post("/suggest-priority/{project_id}")
+async def suggest(project_id:int,task:SuggestMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await suggest_services(project_id,task.title,task.description,user,db)
