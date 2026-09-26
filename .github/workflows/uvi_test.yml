@@ -2,6 +2,24 @@ name: Uvi_test
 
 on: [push]
 
+env: 
+ DB_URL: $DB_URL
+ DB_URL_SYNC: $DB_URL_SYNC
+ REDIS_URL: $REDIS_URL
+ MINIO_ROOT_USER: $MINIO_ROOT_USER
+ CLAUDE_API_KEY: $CLAUDE_API_KEY
+ VOYAGE_API_KEY: $VOYAGE_API_KEY
+ MINIO_ROOT_PASSWORD: $MINIO_ROOT_PASSWORD
+ MINIO_ENDPOINT: $MINIO_ENDPOINT
+ MINIO_ACCESS_KEY: $MINIO_ACCESS_KEY
+ MINIO_SECRET_KEY: $MINIO_SECRET_KEY
+ MINIO_BUCKET: $MINIO_BUCKET  
+ REFRESH_TOKEN_TIME_DAYS: $REFRESH_TOKEN_TIME_DAYS
+ ACCESS_TOKEN_TIME_MINUTES: $ACCESS_TOKEN_TIME_MINUTES
+ ALGORITHM: $ALGORITHM
+ SECRET_KEY: $SECRET_KEY
+ MAX_FILE_SIZE: MAX_FILE_SIZE
+
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -11,7 +29,6 @@ jobs:
           uses: actions/setup-python@v5
           with:
             python-version: "3.14"
-            
         - name: Test
           run: | 
             python -m pip install --upgrade pip
