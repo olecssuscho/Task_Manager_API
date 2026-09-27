@@ -52,6 +52,8 @@ class TaskDB(Base):
     assignee_id : Mapped[int] = mapped_column(ForeignKey("Users.id"),nullable=True) 
     created_by : Mapped[int] = mapped_column(ForeignKey("Users.id"))
     embedding : Mapped[list[float]] = mapped_column(Vector(1024),nullable=True)
+    comments_summary : Mapped[str] = mapped_column(nullable=True)
+    summary_updated_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc), nullable=True)
     created_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
     updated_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))  
 
