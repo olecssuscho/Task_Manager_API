@@ -52,7 +52,8 @@ jobs:
           run: | 
             python -m pip install --upgrade pip
             pip install -r requirements.txt
-            uvicorn main:app --host 0.0.0.0 --port 80 & sleep 5
+            uvicorn main:app --host 0.0.0.0 --port 80 & 
+            sleep 5
             curl -f http://localhost:80/ || exit 1
           
             
