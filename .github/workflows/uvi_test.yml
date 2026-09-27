@@ -3,26 +3,45 @@ name: Uvi_test
 on: [push]
 
 env: 
- DB_URL: $DB_URL
- DB_URL_SYNC: $DB_URL_SYNC
- REDIS_URL: $REDIS_URL
- MINIO_ROOT_USER: $MINIO_ROOT_USER
- CLAUDE_API_KEY: $CLAUDE_API_KEY
- VOYAGE_API_KEY: $VOYAGE_API_KEY
- MINIO_ROOT_PASSWORD: $MINIO_ROOT_PASSWORD
- MINIO_ENDPOINT: $MINIO_ENDPOINT
- MINIO_ACCESS_KEY: $MINIO_ACCESS_KEY
- MINIO_SECRET_KEY: $MINIO_SECRET_KEY
- MINIO_BUCKET: $MINIO_BUCKET  
- REFRESH_TOKEN_TIME_DAYS: 30
- ACCESS_TOKEN_TIME_MINUTES: 15
- ALGORITHM: $ALGORITHM
- SECRET_KEY: $SECRET_KEY
- MAX_FILE_SIZE: 10485760
+ DB_URL: ${{ secrets.DB_URL }}
+ DB_URL_SYNC: ${{ secrets.DB_URL_SYNC }}
+ REDIS_URL: ${{ secrets.REDIS_URL }}
+ MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
+ CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+ VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+ MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+ MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+ MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+ MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+ MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }} 
+ REFRESH_TOKEN_TIME_DAYS: ${{ secrets.REFRESH_TOKEN_TIME_DAYS }}
+ ACCESS_TOKEN_TIME_MINUTES: ${{ secrets.ACCESS_TOKEN_TIME_MINUTES }}
+ ALGORITHM: ${{ secrets.ALGORITHM }}
+ SECRET_KEY: ${{ secrets.SECRET_KEY }}
+ MAX_FILE_SIZE: ${{ secrets.MAX_FILE_SIZE }}
 
 jobs:
     build:
         runs-on: ubuntu-latest
+        services:
+          postgres:
+           image: postgres:16
+           env:
+             POSTGRES_USER: postgres
+             POSTGRES_PASSWORD: 123qwe
+             POSTGRES_DB: Task_Manager_DB_test
+           ports:
+            - "5433:5432"
+           options: >-
+             --health-cmd "pg_isready -U postgres"
+             --health-interval 5s
+             --health-timeout 5s
+             --health-retries 5          
+          redis:
+           image: redis
+           ports:
+            - 6379:6379
+
         steps:
         - uses: actions/checkout@v6
         - name: Set up Python
@@ -33,5 +52,7 @@ jobs:
           run: | 
             python -m pip install --upgrade pip
             pip install -r requirements.txt
-            uvicorn main:app --host 0.0.0.0 --port 80
+            uvicorn main:app --host 0.0.0.0 --port 80 & sleep 5
+            curl -f http://localhost:80/ || exit 1
+          
             
