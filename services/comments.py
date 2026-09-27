@@ -12,12 +12,13 @@ async def create_comment_services(task_id:int,comment:CommentDB,user:UserDB,db:A
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
     await get_role(result.project_id,"editor",user,db)
-   
+
+    project_id = result.project_id
+
     comm = CommentDB(text = comment.text, task_id = task_id, user_id = user.id)
     db.add(comm)
     await db.commit()
     await db.refresh(comm)
-    project_id = result.project_id
     await manager.broadcast(project_id,"Comment created")
     return comm
 
