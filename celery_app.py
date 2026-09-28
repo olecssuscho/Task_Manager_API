@@ -2,13 +2,14 @@ import json
 from celery import Celery
 from celery.schedules import crontab
 from datetime import datetime,timezone
-from schemas.dbmodels import TaskDB
+from schemas.dbmodels import TaskDB,CommentDB
 from config import settings
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine,or_
 from sqlalchemy.orm import sessionmaker
 import redis as sync_redis
 from config import settings
 import logging
+from services.ai_client import resumes
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def task_deadline():
         return
     finally:
         db.close()
-
+    
     for project_id, title in projects:
         try:
             redis_client.publish("task_update", json.dumps({"project_id": project_id, "message": f"Task {title} is overdue"}))
@@ -47,5 +48,46 @@ c_app.conf.beat_schedule = {
     "check-deadlines-daily": {
         "task": "celery_app.task_deadline",
         "schedule": crontab(hour=1,minute=0),
+    },
+}
+
+@c_app.task
+def make_resume():
+    db = session()
+    projects = []
+    try:
+        tasks = db.query(TaskDB).join(CommentDB, TaskDB.id == CommentDB.task_id).filter(
+            or_(TaskDB.summary_updated_at.is_(None), TaskDB.summary_updated_at < CommentDB.created_at)
+        ).distinct().all()
+
+        for task in tasks:
+            comments = db.query(CommentDB.text).filter(CommentDB.task_id == task.id).all()
+            comment_texts = [c.text for c in comments]
+
+            summary = resumes(comment_texts)
+
+            task.comments_summary = summary
+            task.summary_updated_at = datetime.now(timezone.utc)
+
+            projects.append((task.project_id, task.title))
+
+        db.commit()
+        logger.info(f"Updated summary for {len(tasks)} tasks")
+    except Exception:
+        logger.exception("Failed to process summary comment")
+        return
+    finally:
+        db.close()
+
+    for project_id, title in projects:
+        try:
+            redis_client.publish("task_update", json.dumps({"project_id": project_id, "message": f"Task {title} summary was updated"}))
+        except Exception:
+            logger.exception(f"Failed to publish update for project {project_id}")
+
+c_app.conf.beat_schedule = {
+    "check_summary_tasks":{
+        "task": "celery_app.make_resume",
+        "schedule": crontab(hour=1, minute=1),
     },
 }
