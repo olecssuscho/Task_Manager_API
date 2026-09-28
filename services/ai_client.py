@@ -58,3 +58,20 @@ def suggest(text:list[str]):
         output_format=SuggestRESPONSES
     )
     return responce.parsed_output
+
+def resumes(text:list[str]):
+    response = claude_client.messages.create(
+        model="claude-opus-5",
+        max_tokens=500,
+        messages=[
+            {
+                "role":"user",
+                 "content": f"""Read these comments and write a concise summary capturing the gist of the discussion:
+
+                    {chr(10).join(text)}
+                
+                Summary:"""
+            }
+        ],
+    )
+    return "".join(block.text for block in response.content if block.type == "text")
