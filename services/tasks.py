@@ -1,14 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from fastapi import HTTPException,status
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select,update,delete
-from schemas.dbmodels import TaskDB,UserDB
+from sqlalchemy import or_, select,update,delete
+from schemas.dbmodels import TaskDB,UserDB,CommentDB
 from depends import get_role
 from schemas.models import TaskMODELS
 from websocket import manager
-from services.ai_client import generate_task_data_from_text, generate_embedding,suggest
+from services.ai_client import generate_task_data_from_text, generate_embedding,suggest,resumes
 
 logger = logging.getLogger(__name__)
 
@@ -134,3 +134,26 @@ async def suggest_services(project_id:int,title:str,description:str,user:UserDB,
         "priority": sug.priority,
         "reasoning": sug.reasoning
     }
+
+async def sumarize_services(id:int, user:UserDB, db:AsyncSession):
+    stmt = await db.execute(select(TaskDB).filter(TaskDB.id == id))
+    task = stmt.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task did not found")
+    
+    get_role(task.project_id,"editor",user,db)
+
+    tasks_test = await db.execute(select(TaskDB).join(CommentDB, task.id == CommentDB.task_id).filter(
+        or_(task.summary_updated_at == None, task.summary_updated_at < CommentDB.created_at)).distinct())
+
+    tasks = tasks_test.scalars()
+
+    for task in tasks:
+        comments_test = await db.execute(select(CommentDB.text).filter(CommentDB.task_id == task.id))
+        comments = comments_test.scalars()
+        comment_texts = [c.text for c in comments]
+        summary = resumes(comment_texts)
+        task.comments_summary = summary
+        task.summary_updated_at = datetime.now(timezone.utc)
+
+    return task.comments_summary

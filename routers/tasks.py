@@ -11,7 +11,8 @@ from services.tasks import (
     delete_task_services,
     create_from_text_services,
     get_task_from_text,
-    suggest_services)
+    suggest_services,
+    sumarize_services)
 
 
 router = APIRouter(prefix="/task",tags=["Tasks"])
@@ -43,3 +44,7 @@ async def get_from_text(text:str, project_id:int, user:UserMODELS = Depends(get_
 @router.post("/suggest-priority/{project_id}")
 async def suggest(project_id:int,task:SuggestMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await suggest_services(project_id,task.title,task.description,user,db)
+
+@router.post("/{id}/sumarize")
+async def sumarize(id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await sumarize_services(id,user,db)
