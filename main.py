@@ -11,6 +11,9 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from redis_listener import listener
 from lim import limiter
+from config import settings
+from services.files import minio
+
 
 logging.basicConfig(level=logging.INFO,format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
@@ -18,6 +21,9 @@ logging.basicConfig(level=logging.INFO,format="%(asctime)s - %(name)s - %(leveln
 async def lifespan(app: FastAPI):
     if os.getenv("TESTING") != "1":
         asyncio.create_task(listener())   
+    customer = minio.Minio(settings.MINIO_ENDPOINT,settings.MINIO_ACCESS_KEY,settings.MINIO_SECRET_KEY,secure=False)
+    if not customer.bucket_exists(settings.MINIO_BUCKET):
+        customer.make_bucket(bucket_name=settings.MINIO_BUCKET)
     yield  
 
 app = FastAPI(lifespan=lifespan)
