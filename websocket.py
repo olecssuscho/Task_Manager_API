@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 from fastapi import Depends, WebSocket,WebSocketDisconnect,APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,27 +14,35 @@ router = APIRouter()
 class WebSocketManager():
 
     def __init__(self):
-        self.active_connections : Dict[int,Dict[int, WebSocket]] = {}
+        self.active_connections : Dict[int,Dict[int, List[WebSocket]]] = {}
 
     async def connect(self, websocket:WebSocket, project_id:int, user_id:int):
         if project_id not in self.active_connections:
             self.active_connections[project_id] = {}
-        self.active_connections[project_id][user_id] = websocket
+        if user_id not in self.active_connections:
+            self.active_connections[project_id][user_id] = []
+        self.active_connections[project_id][user_id].append(websocket)
 
-    async def disconnect(self, project_id:int, user_id:int):
+    async def disconnect(self, websocket:WebSocket, project_id:int, user_id:int):
         if project_id in self.active_connections and user_id in self.active_connections[project_id]:
-            del self.active_connections[project_id][user_id]
+            connection = self.active_connections[project_id][user_id]
+            if websocket in connection:
+                connection.remove(websocket)
+            if not connection:
+                del self.active_connections[project_id][user_id]
             if not self.active_connections[project_id]:
                 del self.active_connections[project_id]
 
     async def broadcast(self, project_id:int, message:str):
         users = self.active_connections.get(project_id,{})
-        for user_id,websocket in list(users.items()):
-            try:
-                await websocket.send_text(message)
-            except Exception as e:
-                logger.warning(f"Failed to send to user {user_id} in project {project_id}: {e}")
-                await self.disconnect(project_id, user_id)
+        for user_id,connection in list(users.items()):
+            for websocket in list(connection):
+                try:
+                    await websocket.send_text(message)
+                except Exception as e :
+                    logger.warning(f"Failed to send to user {user_id} in project {project_id}: {e}")
+                    self.disconnect(websocket,project_id,user_id)
+            
                 
 manager = WebSocketManager()
 
@@ -64,7 +72,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str,project_id: int, d
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        await manager.disconnect(project_id,user.id)
+        await manager.disconnect(websocket,project_id,user.id)
         
 
             
