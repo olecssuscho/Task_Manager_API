@@ -52,6 +52,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart:
+      unless-stopped
 
   celery-beat:
     build: .
@@ -63,6 +65,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart:
+      unless-stopped
 
   minio:
     image: minio/minio:latest
