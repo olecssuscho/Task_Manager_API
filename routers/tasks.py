@@ -26,12 +26,12 @@ async def get_all_tasks(id:int,user:UserMODELS = Depends(get_current_user),db:As
     return await get_all_tasks_services(id,user,db)
 
 @router.put("/{id}")
-async def update_task(id:int,project_id:int,task:TaskUpdatesMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await update_task_services(id,project_id,task,task.assignee_email,user,db)
+async def update_task(id:int,task:TaskUpdatesMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await update_task_services(id,task,task.assignee_email,user,db)
 
 @router.delete("/{id}")
-async def delete_task(id:int,project_id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await delete_task_services(id,project_id,user,db)
+async def delete_task(id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await delete_task_services(id,user,db)
 
 @router.post("/create-from-text",response_model=TaskRESPONCES)
 async def create_from_text(body:TaskFromTextRequest, user:UserMODELS = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
@@ -41,10 +41,10 @@ async def create_from_text(body:TaskFromTextRequest, user:UserMODELS = Depends(g
 async def get_from_text(text:str, project_id:int, user:UserMODELS = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
     return await get_task_from_text(text,project_id,user,db)
 
-@router.post("/suggest-priority/{project_id}")
-async def suggest(project_id:int,task:SuggestMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await suggest_services(project_id,task.title,task.description,user,db)
+@router.post("/suggest-priority}")
+async def suggest(task:SuggestMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await suggest_services(task.title,task.description,user,db)
 
 @router.post("/{id}/sumarize")
-async def sumarize(id:int,project_id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await sumarize_services(id,project_id,user,db)
+async def sumarize(id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await sumarize_services(id,user,db)
