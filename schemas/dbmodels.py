@@ -33,7 +33,7 @@ class ProjectMemberDB(Base):
     __tablename__ = "ProjectMembers"
 
     id : Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    project_id : Mapped[int] = mapped_column(ForeignKey("Projects.id")) 
+    project_id : Mapped[int] = mapped_column(ForeignKey("Projects.id", ondelete="CASCADE")) 
     user_id : Mapped[int] = mapped_column(ForeignKey("Users.id"))
     role : Mapped[str] = mapped_column(Enum("owner","editor","viewer",name = "role"), default = "viewer")
     joined_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
@@ -48,7 +48,7 @@ class TaskDB(Base):
     status : Mapped[str] = mapped_column(Enum("todo","in_progress","review","done","overdue", name = "status"), default = "todo")  
     priority : Mapped[str] = mapped_column(Enum("low","medium","high",name = "priority"), default = "medium")   
     deadline : Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    project_id : Mapped[int] = mapped_column(ForeignKey("Projects.id")) 
+    project_id : Mapped[int] = mapped_column(ForeignKey("Projects.id", ondelete="CASCADE")) 
     assignee_id : Mapped[int] = mapped_column(ForeignKey("Users.id"),nullable=True) 
     created_by : Mapped[int] = mapped_column(ForeignKey("Users.id"))
     embedding : Mapped[list[float]] = mapped_column(Vector(1024),nullable=True)
