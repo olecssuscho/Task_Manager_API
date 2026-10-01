@@ -27,6 +27,14 @@ class TaskMODELS(BaseModel):
     project_id : int
     assignee_email : str
 
+class TaskUpdatesMODELS(BaseModel):
+    title : str
+    description : str
+    status : Literal["todo","in_progress","review","done"]
+    priority : Literal["low","medium","high"]
+    deadline : datetime
+    assignee_email : str
+
 class ProjectMemberUpdateMODELS(BaseModel):
     role : Literal["viewer","editor","owner"]
 
