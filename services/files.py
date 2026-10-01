@@ -9,7 +9,9 @@ from sqlalchemy import select
 from config import settings
 from depends import get_role
 import mimetypes
+import logging
 
+logger = logging.getLogger(__name__)
 
 async def upload_file_services(file:UploadFile, original_filename:str, task_id:int, user:UserDB, db:AsyncSession):
 
@@ -18,16 +20,13 @@ async def upload_file_services(file:UploadFile, original_filename:str, task_id:i
     task_db = task.scalar_one_or_none()
 
     if not task_db:
+        logger.warning(f"User: {user.id} tried to load file: {original_filename} related to task: {task_id}, but that task does not exist")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
-
-    project_id = task_db.project_id
-
-    if not project_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     
-    await get_role(project_id,"editor",user,db)
+    await get_role(task_db.project_id,"editor",user,db)
 
     if file.size > settings.MAX_FILE_SIZE:
+        logger.warning(f"User: {user.id} tried to load file: {original_filename}, but file is too large")
         raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="File size too big")
 
     extension = os.path.splitext(original_filename)[1]
@@ -54,7 +53,9 @@ async def upload_file_services(file:UploadFile, original_filename:str, task_id:i
     )
 
     db.add(file_db)
+    user_id = user.id
     await db.commit()
+    logger.info(f"User: {user_id} load file: {original_filename}")
     return "Success"
 
 async def download_file_services(original_filename:str, task_id:int, user:UserDB, db:AsyncSession):
@@ -64,22 +65,22 @@ async def download_file_services(original_filename:str, task_id:int, user:UserDB
     task_db = task.scalar_one_or_none()
 
     if not task_db:
+        logger.warning(f"User: {user.id} tried to download file: {original_filename} related to task: {task_id}, but that task does not exist")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
     project_id = task_db.project_id
-
-    if not project_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     
     file = await db.execute(select(AttachmentDB).filter(AttachmentDB.filename == original_filename,AttachmentDB.task_id == task_id))
 
     file_real = file.scalar_one_or_none()
 
     if not file_real:
+        logger.warning(f"User: {user.id} tried to download file: {original_filename} related to task: {task_id}, but that file does not exist")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File is not found")
 
     await get_role(project_id,"viewer",user,db)
-
+    
+    logger.info(f"User: {user.id} load file: {original_filename}")
     return file_real
 
     
