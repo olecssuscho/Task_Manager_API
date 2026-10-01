@@ -35,8 +35,8 @@ def generate_task_data_from_text(text:str):
     )
     return response.parsed_output
 
-def generate_embedding(text:str):
-    responce = voyage_client.embed(texts=[text],model="voyage-3.5",input_type="document")
+def generate_embedding(text:list[str]):
+    responce = voyage_client.embed(texts=text,model="voyage-3.5",input_type="document")
     return responce.embeddings[0]
 
 def suggest(text:list[str]):
