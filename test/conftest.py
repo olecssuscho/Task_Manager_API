@@ -1,68 +1,72 @@
 import os
-os.environ["TESTING"] = "1"
-
-import pytest_asyncio
-import schemas.dbmodels as models
-from depends import get_db
-from main import app
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy import delete
+import pytest
+import subprocess
+import time
+import requests
 from schemas.dbmodels import Base
-from httpx import AsyncClient, ASGITransport
+from sqlalchemy import create_engine
 
-TEST_DATABASE_URL = os.getenv("DB_URL")
 
-@pytest_asyncio.fixture(autouse=True)
-async def clear_db():
-    engine = create_async_engine(url=TEST_DATABASE_URL)  
-    Session = async_sessionmaker(engine, autocommit=False, autoflush=False)
+TEST_DATABASE_URL = "postgresql+psycopg2://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
 
-    async def override_get_db():
-        async with Session() as db:
-            yield db
+def prepare_db():
+    sync_engine = create_engine(TEST_DATABASE_URL)
+    Base.metadata.drop_all(bind=sync_engine)
+    Base.metadata.create_all(bind=sync_engine)
+    sync_engine.dispose()
 
-    app.dependency_overrides[get_db] = override_get_db
+@pytest.fixture(scope="session", autouse=True)
+def live_server():
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+    prepare_db()
+
+    env={**os.environ, "TESTING": "1", "DB_URL":"TEST_DATABASE_URL"}
+
+    proc = subprocess.Popen(["python", "-m", "uvicorn", "main:app", "--port", "8000"], env=env)
+    for _ in range(20):
+        try:
+            requests.post("http://localhost:8000/",timeout=1)
+            break
+        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
+            time.sleep(0.5)
 
     yield
+    proc.terminate()
+    proc.wait()
 
-    async with Session() as db:
-        await db.execute(delete(models.CommentDB))
-        await db.execute(delete(models.TaskDB))
-        await db.execute(delete(models.ProjectMemberDB))
-        await db.execute(delete(models.ProjectDB))
-        await db.execute(delete(models.UserDB))
-        await db.commit()
+@pytest.fixture
+def client():
+    return requests.Session()  
 
-    await engine.dispose() 
+@pytest.fixture(scope="session" )
+def create_users(live_server):
+    base = "http://localhost:8000"
+    s = requests.Session()
 
-@pytest_asyncio.fixture
-async def client():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        yield ac
+    s.post(f"{base}/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    s.post(f"{base}/user/register", json={"email": "editor@test.com", "password": "pass12345", "fullname": "Editor", "role":"editor"})
+    s.post(f"{base}/user/register", json={"email": "viewer@test.com", "password": "pass12345", "fullname": "Viewer", "role":"viewer"})
 
-@pytest_asyncio.fixture
-async def create_users(client):
-    await client.post("/user/register",json={"email":"testuser1@gmail.com","password":"testpassword1","fullname":"Test User 1","role":"owner"})
-    await client.post("/user/register",json={"email":"testuser2@gmail.com","password":"testpassword2","fullname":"Test User 2","role":"editor"})
-    await client.post("/user/register",json={"email":"testuser3@gmail.com","password":"testpassword3","fullname":"Test User 3","role":"viewer"})
-
-    owner = await client.post("/user/login",data={"username":"testuser1@gmail.com","password":"testpassword1"})
-    editor = await client.post("/user/login",data={"username":"testuser2@gmail.com","password":"testpassword2"})
-    viewer = await client.post("/user/login",data={"username":"testuser3@gmail.com","password":"testpassword3"})
+    owner = s.post(f"{base}/user/login", data={"username": "owner@test.com", "password": "pass12345"})
+    editor = s.post(f"{base}/user/login", data={"username": "editor@test.com", "password": "pass12345"})
+    viewer = s.post(f"{base}/user/login", data={"username": "viewer@test.com", "password": "pass12345"})
 
     owner_token = owner.json()["access_token"]
-    editor_token = editor.json()["access_token"]    
+    editor_token = editor.json()["access_token"]
     viewer_token = viewer.json()["access_token"]
 
-    create_resp = await client.post("/project/create",json={"name":"testproject1","description":"testproject1 description","owner_email":"testuser1@gmail.com"}, headers={"Authorization": f"Bearer {owner_token}"})
-    project_id = create_resp.json()["id"]
+    project = s.post(f"{base}/project/create",
+    json={"name":"Test project","description":"test description","owner_email":"owner@test.com"},
+    headers={"Authorization": f"Bearer {owner_token}"})
 
-    resp = await client.post(f"/project_member/project/{project_id}/member/testuser2@gmail.com",json={"role":"editor"}, headers={"Authorization": f"Bearer {owner_token}"})
-    print(resp.status_code, resp.json())
-    await client.post(f"/project_member/project/{project_id}/member/testuser3@gmail.com",json={"role":"viewer"}, headers={"Authorization": f"Bearer {owner_token}"})
+    project_id = project.json()["id"]
 
-    return {"project_id": project_id, "owner_token": owner_token, "editor_token": editor_token, "viewer_token": viewer_token}
+    s.post(f"{base}/project_member/project/{project_id}/member/editor@test.com", json={"role": "editor"}, headers={"Authorization": f"Bearer {owner_token}"})
+    s.post(f"{base}/project_member/project/{project_id}/member/viewer@test.com", json={"role": "viewer"}, headers={"Authorization": f"Bearer {owner_token}"})
+
+    return {
+        "project_id": project_id,
+        "owner_token": owner_token,
+        "editor_token": editor_token,
+        "viewer_token": viewer_token,
+    }
