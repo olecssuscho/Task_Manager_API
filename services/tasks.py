@@ -8,7 +8,7 @@ from schemas.dbmodels import TaskDB,UserDB,CommentDB,ProjectDB
 from depends import get_role
 from schemas.models import TaskMODELS
 from websocket import manager
-from services.ai_client import generate_task_data_from_text, generate_embedding,suggest,resumes
+import services.ai_client as ai_client
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:Asy
     result = stmt.scalar_one_or_none()
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User did not found")
-    emd = generate_embedding([task.title,task.description])
+    emd = ai_client.generate_embedding([task.title,task.description])
     task_db = TaskDB(
         title = task.title,
         description = task.description,
@@ -58,7 +58,7 @@ async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:
     if not assigne:
         logger.warning(f"User: {user.id} had tried to update task: {id} related to project: {project_id}, but email: {task_email} was not assigne to that task")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User did not found")
-    emd = generate_embedding([task.title,task.description])
+    emd = ai_client.generate_embedding([task.title,task.description])
     await db.execute(update(TaskDB).filter(TaskDB.id == id).values(
         title = task.title, description = task.description,
         status = task.status, priority = task.priority,
@@ -101,7 +101,7 @@ async def create_from_text_services(text:str,project_id:int,assignee_email:str,u
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User did not found")
     get_role(project.id,"editor",user,db)
     try:
-        ai_data = generate_task_data_from_text(text)
+        ai_data = ai_client.generate_task_data_from_text(text)
     except Exception as e:
         if "429" in str(e):
             logger.warning("Claude rate limit exceeded")
@@ -109,7 +109,7 @@ async def create_from_text_services(text:str,project_id:int,assignee_email:str,u
         logger.exception("AI service call failed")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI service unavailable")
     try:
-        emd = generate_embedding([ai_data.title,ai_data.description])
+        emd = ai_client.generate_embedding([ai_data.title,ai_data.description])
         task_input = TaskMODELS(
             title=ai_data.title,
             description=ai_data.description,
@@ -135,7 +135,7 @@ async def get_task_from_text(text:str,project_id:int,user:UserDB,db:AsyncSession
     
     get_role(project.id,"editor",user,db)
     try:
-        vector = generate_embedding([text])
+        vector = ai_client.generate_embedding([text])
     except Exception as e:
         if "429" in str(e):
             logger.warning("Voyage rate limit exceeded")
@@ -150,7 +150,7 @@ async def get_task_from_text(text:str,project_id:int,user:UserDB,db:AsyncSession
 
 async def suggest_services(title:str,description:str,user:UserDB,db:AsyncSession):  
     try:
-        sug = suggest([title,description])
+        sug = ai_client.suggest([title,description])
     except Exception as e:
         if "429" in str(e):
             logger.warning("Claude rate limit exceeded")
@@ -183,7 +183,7 @@ async def sumarize_services(id:int, user:UserDB, db:AsyncSession):
         comments_test = await db.execute(select(CommentDB.text).filter(CommentDB.task_id == task.id))
         comments = comments_test.scalars()
         comment_texts = [c.text for c in comments]
-        summary = resumes(comment_texts)
+        summary = ai_client.resumes(comment_texts)
         task.comments_summary = summary
         task.summary_updated_at = datetime.now(timezone.utc)
     logger.info(f"User: {user.id} create summarize comments for task: {task.id} related to project: {task.project_id}")
