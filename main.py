@@ -14,7 +14,6 @@ from lim import limiter
 from config import settings
 from services.files import minio
 
-
 logging.basicConfig(level=logging.INFO,format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 @asynccontextmanager

@@ -20,12 +20,12 @@ def live_server():
 
     prepare_db()
 
-    env={**os.environ, "TESTING": "1", "DB_URL":"TEST_DATABASE_URL"}
+    env={**os.environ,"TESTING":"1","ENV_FILE":".env.test"}
 
     proc = subprocess.Popen(["python", "-m", "uvicorn", "main:app", "--port", "8000"], env=env)
     for _ in range(20):
         try:
-            requests.post("http://localhost:8000/",timeout=1)
+            requests.get("http://localhost:8000/",timeout=1)
             break
         except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
             time.sleep(0.5)
