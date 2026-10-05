@@ -39,10 +39,16 @@ async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:Asy
     return task_db
 
 async def get_all_tasks_services(id:int,user:UserDB,db:AsyncSession):
-    await get_role(id,"viewer",user,db)
+    project_test = await db.execute(select(ProjectDB).filter(ProjectDB.id == id))
+    project = project_test.scalar_one_or_none()
+    if not project:
+        logger.warning(f"User: {user.id} tried to create task from text related to project: {id}, but that project does not exist")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project did not found")
+    project_id = project.id
+    await get_role(project_id,"viewer",user,db)
 
-    stmt = select(TaskDB).filter(TaskDB.project_id == id)
-    logger.info(f"User: {user.id} get all tasks to project: {id}")
+    stmt = select(TaskDB).filter(TaskDB.project_id == project_id)
+    logger.info(f"User: {user.id} get all tasks to project: {project_id}")
     return await paginate(db,stmt)
 
 async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:AsyncSession):
