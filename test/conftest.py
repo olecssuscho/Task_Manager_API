@@ -1,68 +1,64 @@
-import os
+from fastapi.testclient import TestClient
 import pytest
-import subprocess
-import time
-import requests
-from schemas.dbmodels import Base
+from sqlalchemy.ext.asyncio import create_async_engine,async_sessionmaker
+from main import app
+from depends import get_db
+from sqlalchemy import delete
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from schemas.dbmodels import CommentDB, ProjectDB, ProjectMemberDB, TaskDB, UserDB
 
 
-TEST_DATABASE_URL = "postgresql+psycopg2://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
+TEST_DATABASE_URL_ASYNC = "postgresql+asyncpg://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
+TEST_DATABASE_URL_SYNC = "postgresql+psycopg2://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
 
-def prepare_db():
-    sync_engine = create_engine(TEST_DATABASE_URL)
-    Base.metadata.drop_all(bind=sync_engine)
-    Base.metadata.create_all(bind=sync_engine)
-    sync_engine.dispose()
+async_engine = create_async_engine(TEST_DATABASE_URL_ASYNC)
+AsyncSessionLocal = async_sessionmaker(async_engine)
+engine = create_engine(TEST_DATABASE_URL_SYNC)
+Session = sessionmaker(engine)
+async def override_db():
+    async with AsyncSessionLocal() as db:
+        yield db
 
-@pytest.fixture(scope="session", autouse=True)
-def live_server():
-
-    prepare_db()
-
-    env={**os.environ,"TESTING":"1","ENV_FILE":".env.test"}
-
-    proc = subprocess.Popen(["python", "-m", "uvicorn", "main:app", "--port", "8000"], env=env)
-    for _ in range(20):
-        try:
-            requests.get("http://localhost:8000/",timeout=1)
-            break
-        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            time.sleep(0.5)
-
-    yield
-    proc.terminate()
-    proc.wait()
-
-@pytest.fixture
+def clear_tables():
+    with Session() as db:
+        db.execute(delete(CommentDB))
+        db.execute(delete(TaskDB))
+        db.execute(delete(ProjectMemberDB))
+        db.execute(delete(ProjectDB))
+        db.execute(delete(UserDB))
+        db.commit() 
+       
+@pytest.fixture(scope="session")
 def client():
-    return requests.Session()  
+    app.dependency_overrides[get_db] = override_db
+    clear_tables()
+    with TestClient(app) as c:
+        yield c
 
-@pytest.fixture(scope="session" )
-def create_users(live_server):
-    base = "http://localhost:8000"
-    s = requests.Session()
+@pytest.fixture(scope="session")
+def create_users(client):
+    
+    client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    client.post("/user/register", json={"email": "editor@test.com", "password": "pass12345", "fullname": "Editor", "role":"editor"})
+    client.post("/user/register", json={"email": "viewer@test.com", "password": "pass12345", "fullname": "Viewer", "role":"viewer"})
 
-    s.post(f"{base}/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
-    s.post(f"{base}/user/register", json={"email": "editor@test.com", "password": "pass12345", "fullname": "Editor", "role":"editor"})
-    s.post(f"{base}/user/register", json={"email": "viewer@test.com", "password": "pass12345", "fullname": "Viewer", "role":"viewer"})
-
-    owner = s.post(f"{base}/user/login", data={"username": "owner@test.com", "password": "pass12345"})
-    editor = s.post(f"{base}/user/login", data={"username": "editor@test.com", "password": "pass12345"})
-    viewer = s.post(f"{base}/user/login", data={"username": "viewer@test.com", "password": "pass12345"})
+    owner = client.post("/user/login", data={"username": "owner@test.com", "password": "pass12345"})
+    editor = client.post("/user/login", data={"username": "editor@test.com", "password": "pass12345"})
+    viewer = client.post("/user/login", data={"username": "viewer@test.com", "password": "pass12345"})
 
     owner_token = owner.json()["access_token"]
     editor_token = editor.json()["access_token"]
     viewer_token = viewer.json()["access_token"]
 
-    project = s.post(f"{base}/project/create",
+    project = client.post("/project/create",
     json={"name":"Test project","description":"test description","owner_email":"owner@test.com"},
     headers={"Authorization": f"Bearer {owner_token}"})
 
     project_id = project.json()["id"]
 
-    s.post(f"{base}/project_member/project/{project_id}/member/editor@test.com", json={"role": "editor"}, headers={"Authorization": f"Bearer {owner_token}"})
-    s.post(f"{base}/project_member/project/{project_id}/member/viewer@test.com", json={"role": "viewer"}, headers={"Authorization": f"Bearer {owner_token}"})
+    client.post(f"/project_member/project/{project_id}/member/editor@test.com", json={"role": "editor"}, headers={"Authorization": f"Bearer {owner_token}"})
+    client.post(f"/project_member/project/{project_id}/member/viewer@test.com", json={"role": "viewer"}, headers={"Authorization": f"Bearer {owner_token}"})
 
     return {
         "project_id": project_id,
