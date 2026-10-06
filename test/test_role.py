@@ -95,6 +95,8 @@ def test_editor_can_create_task(client,create_users):
         headers={"Authorization": f"Bearer {create_users["editor_token"]}"}
     )
 
+    assert task.status_code == 200
+
 def test_editor_can_update_task(client,create_users):
     task = client.post("/task/create",json={
           "title": "test_task",
