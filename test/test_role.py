@@ -116,7 +116,6 @@ def test_editor_can_update_task(client,create_users):
           "status": "todo",
           "priority": "low",
           "deadline": "2026-10-05T13:35:04.076Z",
-          "project_id": create_users["project_id"],
           "assignee_email": "editor@test.com"
         },
         headers={"Authorization": f"Bearer {create_users["editor_token"]}"}
