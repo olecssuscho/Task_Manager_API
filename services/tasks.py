@@ -12,14 +12,14 @@ import services.ai_client as ai_client
 
 logger = logging.getLogger(__name__)
 
-async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:AsyncSession):
-    project_test = await db.execute(select(UserDB).filter(ProjectDB.id == task.project_id))
+async def create_tasks_services(task:TaskDB,project_id:int,asiigne_email:str,user:UserDB,db:AsyncSession):
+    project_test = await db.execute(select(ProjectDB).filter(ProjectDB.id == project_id))
     project = project_test.scalar_one_or_none()
     if not project:
         logger.warning(f"User: {user.id} tried to create task related to project: {task.project_id}, but that project does not exist")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project did not found")
-    project_id = project.id
-    await get_role(project_id,"editor",user,db)  
+    project_id_real = project.id
+    await get_role(project_id_real,"editor",user,db)  
     stmt = await db.execute(select(UserDB).filter(UserDB.email == asiigne_email))
     result = stmt.scalar_one_or_none()
     if not result:
@@ -31,7 +31,7 @@ async def create_tasks_services(task:TaskDB,asiigne_email:str,user:UserDB,db:Asy
         status = task.status,
         priority = task.priority,
         deadline = task.deadline,
-        project_id = project_id,
+        project_id = project_id_real,
         assignee_id = result.id,
         created_by = user.id,
         embedding = emd

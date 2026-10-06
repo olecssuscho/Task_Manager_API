@@ -19,7 +19,7 @@ router = APIRouter(prefix="/task",tags=["Tasks"])
 
 @router.post("/create",response_model=TaskRESPONCES)
 async def create_tasks(task:TaskMODELS,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await create_tasks_services(task,task.assignee_email,user,db)
+    return await create_tasks_services(task,task.project_id,task.assignee_email,user,db)
 
 @router.get("/{id}/tasks",response_model=Page[TaskRESPONCES])
 async def get_all_tasks(id:int,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
