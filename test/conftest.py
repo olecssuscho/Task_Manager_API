@@ -1,3 +1,5 @@
+import os
+os.environ["TESTING"] = "1"
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine,async_sessionmaker
@@ -7,12 +9,12 @@ from sqlalchemy import delete
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from schemas.dbmodels import CommentDB, ProjectDB, ProjectMemberDB, TaskDB, UserDB
-
+from sqlalchemy.pool import NullPool
 
 TEST_DATABASE_URL_ASYNC = "postgresql+asyncpg://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
 TEST_DATABASE_URL_SYNC = "postgresql+psycopg2://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
 
-async_engine = create_async_engine(TEST_DATABASE_URL_ASYNC)
+async_engine = create_async_engine(TEST_DATABASE_URL_ASYNC,poolclass = NullPool)
 AsyncSessionLocal = async_sessionmaker(async_engine)
 engine = create_engine(TEST_DATABASE_URL_SYNC)
 Session = sessionmaker(engine)
