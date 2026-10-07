@@ -1,6 +1,6 @@
 from sqlalchemy import select,delete
 from fastapi import HTTPException,status
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from schemas.dbmodels import UserDB,CommentDB,TaskDB
 from sqlalchemy.ext.asyncio import AsyncSession
 from depends import get_role
@@ -38,7 +38,7 @@ async def get_comments_services(task_id:int,user:UserDB,db:AsyncSession):
     await get_role(task.project_id,"viewer",user,db)
     comm = (select(CommentDB).filter(CommentDB.task_id == task_id))
     logger.info(f"User: {user.id} get all comments related to task: {task.id}")
-    return await paginate(db,comm)
+    return await apaginate(db,comm)
     
 async def delete_comment_services(id:int,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(CommentDB).filter(CommentDB.id == id))

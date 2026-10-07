@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import logging
 from fastapi import HTTPException,status
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_, select,update,delete
 from schemas.dbmodels import TaskDB,UserDB,CommentDB,ProjectDB
@@ -55,7 +55,7 @@ async def get_all_tasks_services(id:int,user:UserDB,db:AsyncSession):
 
     stmt = select(TaskDB).filter(TaskDB.project_id == project_id)
     logger.info(f"User: {user.id} get all tasks to project: {project_id}")
-    return await paginate(db,stmt)
+    return await apaginate(db,stmt)
 
 async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(TaskDB).filter(TaskDB.id == id))
