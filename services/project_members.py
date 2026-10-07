@@ -4,6 +4,7 @@ from schemas.dbmodels import ProjectDB,UserDB,ProjectMemberDB
 from sqlalchemy.ext.asyncio import AsyncSession
 from depends import get_role
 import logging
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 logger = logging.getLogger(__name__)
 
@@ -83,4 +84,15 @@ async def patch_member_services(project_id:int,user_email:str,role:ProjectMember
     logger.info(f"User: {user_id}, patch project member: {user_email_db} of project {project_id_db}")
     await db.commit()
     return "Success" 
-    
+
+async def get_members_services(id:int,user:UserDB,db:AsyncSession):
+    stmt = await db.execute(select(ProjectDB).filter(ProjectDB.id == id))
+    project = stmt.scalar_one_or_none()
+    if project is None:
+        logger.warning(f"User: {user.id}, tried to get project members of project: {id}, but project was not exist")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project did not found")
+    project_id = project.id
+    await get_role(project_id,"editor",user,db)
+    projects = (select(ProjectMemberDB).filter(ProjectMemberDB.project_id == project_id))
+    logger.info(f"User: {user.id}, get members of project {project_id}")
+    return await apaginate(db,projects)
