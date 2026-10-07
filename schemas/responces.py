@@ -43,3 +43,7 @@ class SuggestRESPONSES(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     priority: Literal["low","medium","high"]
     reasoning: str
+
+class ProjectMemberRESPONSES(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    user_id: int
