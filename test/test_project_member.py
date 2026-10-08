@@ -1,5 +1,4 @@
 from conftest import client,create_users
-import services.ai_client as ai_client
 
 def test_owner_become_part_of_created_project(client,create_users):
     project = client.post("/project/create",
