@@ -9,6 +9,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 async def register_services(user:UserDB,db:AsyncSession):
+    stmt = await db.execute(select(UserDB).filter(UserDB.email == user.email))
+    user_db = stmt.scalar_one_or_none()
+    if user_db:
+        logger.warning(f"Someone have tried to register with {user.email}, but it was used")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email was used")  
     refresh_token = create_refresh_token({"email":user.email})
     password = user.password
     hashed_password = hash_password(password)
