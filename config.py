@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     MINIO_BUCKET:str
     CLAUDE_API_KEY:str
     VOYAGE_API_KEY:str
+    ABS_DAY_LIFE:int
     model_config = ConfigDict(env_file = ".env.local", env_file_encoding = "utf-8")
 
 settings = Settings()
