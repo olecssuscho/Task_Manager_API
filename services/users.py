@@ -8,6 +8,7 @@ from auth import check_password, create_access_token, create_refresh_token, deco
 from auth import hash_token,create_abs_edge
 import uuid
 import logging
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ async def register_services(user:UserDB,db:AsyncSession):
     await db.commit()
     await db.refresh(user_db)
     user_id = user_db.id   
-    refr = RefreshDB(user_id = user_id,token_hash = hashed_token,exp = expiered + timedelta(90),
+    refr = RefreshDB(user_id = user_id,token_hash = hashed_token,exp = expiered + timedelta(settings.ABS_DAY_LIFE),
                      family_id = uuid.uuid4(),abs_edge = create_abs_edge()) 
     db.add(refr)
     await db.commit()
@@ -45,9 +46,21 @@ async def login_services(form_data:OAuth2PasswordRequestForm,db:AsyncSession):
     if not check_password(form_data.password,user.password):
         logger.warning(f"User: {user.id} tried to login, but password was uncorrect")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Password is not correct")
+    
+    family_id = uuid.uuid4()
+    token = create_refresh_token({"email": user.email})
+    expiered = datetime.fromtimestamp(decode_token(token).get("exp"),tz=timezone.utc)
+    hashed_token = hash_token(token)
     access_token = create_access_token({"email": user.email})
+
+    refr = RefreshDB(user_id = user.id,token_hash = hashed_token,exp = expiered + timedelta(settings.ABS_DAY_LIFE),
+                    family_id = family_id,abs_edge = create_abs_edge()) 
+    db.add(refr)
+    await db.commit()
+    await db.refresh(refr)
+
     logger.info(f"User: {form_data.client_id} was login")
-    return {"access_token": access_token, "refresh_token": user.refresh_token,"token_type": "bearer"}
+    return {"access_token": access_token, "refresh_token": refr.token_hash,"token_type": "bearer"}
 
 async def get_services(user:UserDB,db:AsyncSession):
     stmt = await db.execute(select(UserDB).filter(UserDB.id == user.id))
