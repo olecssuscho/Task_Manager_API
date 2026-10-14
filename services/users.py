@@ -1,9 +1,12 @@
+from datetime import timedelta,datetime,timezone
 from fastapi import HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from schemas.dbmodels import UserDB
+from schemas.dbmodels import UserDB,RefreshDB
 from fastapi.security import OAuth2PasswordRequestForm
 from auth import check_password, create_access_token, create_refresh_token, decode_token,hash_password
+from auth import hash_token,create_abs_edge
+import uuid
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,16 +18,23 @@ async def register_services(user:UserDB,db:AsyncSession):
         logger.warning(f"Someone have tried to register with {user.email}, but it was used")
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email was used")  
     refresh_token = create_refresh_token({"email":user.email})
+    expiered = datetime.fromtimestamp(decode_token(refresh_token).get("exp"),tz=timezone.utc)
+    hashed_token = hash_token(refresh_token)
     password = user.password
     hashed_password = hash_password(password)
     user.password = hashed_password
-    user_db = UserDB(**user.model_dump(),refresh_token = refresh_token)
+    user_db = UserDB(**user.model_dump(),refresh_token = hashed_token)
     db.add(user_db)
     await db.commit()
     await db.refresh(user_db)
-    user_id = user_db.id    
+    user_id = user_db.id   
+    refr = RefreshDB(user_id = user_id,token_hash = hashed_token,exp = expiered + timedelta(90),
+                     family_id = uuid.uuid4(),abs_edge = create_abs_edge()) 
+    db.add(refr)
+    await db.commit()
+    await db.refresh(refr)
     logger.info(f"User: {user_id} was register")
-    return refresh_token
+    return refr.token_hash
 
 async def login_services(form_data:OAuth2PasswordRequestForm,db:AsyncSession):
     result = await db.execute(select(UserDB).filter(UserDB.email==form_data.username))
