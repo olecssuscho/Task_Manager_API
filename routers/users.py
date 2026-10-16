@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm,HTTPBearer,HTTPAuthorizationCredentials
 from schemas.models import UserMODELS
 from depends import get_current_user, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,11 @@ from services.users import (
 from lim import limiter
 
 router = APIRouter(prefix="/user",tags=["Users"])
+
+bearer = HTTPBearer()
+
+def get_token(token:HTTPAuthorizationCredentials = Depends(bearer)) -> str:
+    return token.credentials
 
 @router.post("/register")
 @limiter.limit("5/minute")
@@ -27,5 +32,5 @@ async def get_me(user:UserMODELS = Depends(get_current_user),db:AsyncSession = D
     return await get_services(user,db)
 
 @router.get("/refresh")
-async def refresh(user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await refresh_services(user,db)
+async def refresh(token:str = Depends(get_token),db:AsyncSession = Depends(get_db)):
+    return await refresh_services(token,db)
