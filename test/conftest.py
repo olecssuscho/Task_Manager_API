@@ -8,7 +8,7 @@ from depends import get_db
 from sqlalchemy import delete
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from schemas.dbmodels import CommentDB, ProjectDB, ProjectMemberDB, TaskDB, UserDB
+from schemas.dbmodels import CommentDB, ProjectDB, ProjectMemberDB, TaskDB, UserDB, RefreshDB
 from sqlalchemy.pool import NullPool
 
 TEST_DATABASE_URL_ASYNC = "postgresql+asyncpg://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
@@ -29,6 +29,7 @@ def clear_tables():
         db.execute(delete(ProjectMemberDB))
         db.execute(delete(ProjectDB))
         db.execute(delete(UserDB))
+        db.execute(delete(RefreshDB))
         db.commit() 
        
 @pytest.fixture(scope="session")
