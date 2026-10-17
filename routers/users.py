@@ -9,7 +9,8 @@ from services.users import (
     get_services,
     refresh_services,
     logout_services,
-    logout_all_services)
+    logout_all_services,
+    change_password_services)
 from lim import limiter
 
 router = APIRouter(prefix="/user",tags=["Users"])
@@ -44,3 +45,7 @@ async def logout(token:str = Depends(get_token),db:AsyncSession = Depends(get_db
 @router.get("/logout_all")
 async def logout_all(user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await logout_all_services(user,db)
+
+@router.get("/change_password")
+async def change_password(password:str,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await change_password_services(password,user,db)

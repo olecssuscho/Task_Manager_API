@@ -134,7 +134,7 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
     logger.info(f"User's: {user_id} token was refreshed: {refresh_token}")
     return {"access_token": access_token, "refresh_token": refresh_token,"token_type": "bearer"}
 
-async def logout_services(token:str,db:AsyncSession):   
+async def logout_services(token:str,db:AsyncSession) -> dict:   
     test_token = hash_token(token)
     stmt = await db.execute(select(RefreshDB).filter(RefreshDB.token_hash == test_token))
     record = stmt.scalar_one_or_none()
@@ -145,7 +145,7 @@ async def logout_services(token:str,db:AsyncSession):
     await revoke_family(record.family_id,db,"Exit")
     return {"detail" : "successful"}
 
-async def logout_all_services(user:UserDB,db:AsyncSession):
+async def logout_all_services(user:UserDB,db:AsyncSession) -> dict:
     stmt = await db.execute(select(UserDB).filter(UserDB.id == user.id))
     user_db = stmt.scalar_one_or_none()
 
@@ -153,5 +153,17 @@ async def logout_all_services(user:UserDB,db:AsyncSession):
     await db.execute(update(RefreshDB).filter(RefreshDB.user_id == user_db.id,
                                 RefreshDB.revoked_at.is_(None)).
                                 values(revoked_at = now,  revoke_reason = "Exit"))
+    await db.commit()
+    return {"detail" : "successful"}
+
+async def change_password_services(password:str,user:UserDB,db:AsyncSession) -> dict:
+    new_password = hash_password(password)
+
+    await db.execute(update(UserDB).filter(UserDB.id == user.id).values(password = new_password))
+    
+    now = datetime.now(timezone.utc)
+    await db.execute(update(RefreshDB).filter(RefreshDB.user_id == user.id,
+                                    RefreshDB.revoked_at.is_(None)).
+                                    values(revoked_at = now,  revoke_reason = "Change password"))
     await db.commit()
     return {"detail" : "successful"}
