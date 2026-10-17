@@ -90,7 +90,7 @@ class RefreshDB(Base):
     exp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     family_id: Mapped[uuid.UUID] = mapped_column(Uuid, index=True)
     used: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    abs_edge: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    abs_edge: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoke_reason: Mapped[str | None] = mapped_column(Enum("Exit","Change password","repeat use","admin",name = "revoke_reason"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
