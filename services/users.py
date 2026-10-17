@@ -33,7 +33,7 @@ async def register_services(user:UserDB,db:AsyncSession) -> str:
     
     hashed_password = hash_password(password)
     user.password = hashed_password
-    user_db = UserDB(**user.model_dump(),refresh_token = record)
+    user_db = UserDB(**user.model_dump())
     db.add(user_db)
     await db.commit()
     await db.refresh(user_db)
@@ -53,25 +53,25 @@ async def login_services(form_data:OAuth2PasswordRequestForm,db:AsyncSession) ->
     user = result.scalar_one_or_none()
     if not user:
         logger.warning(f"User: {form_data.username} tried to login, but he was not exist")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not check_password(form_data.password,user.password):
         logger.warning(f"User: {user.id} tried to login, but password was uncorrect")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Password is not correct")
-    
-    family_id = uuid.uuid4()
-    token = create_refresh_token({"email": user.email})
-    expiered = datetime.fromtimestamp(decode_token(token).get("exp"),tz=timezone.utc)
-    record = hash_token(token)
-    access_token = create_access_token({"email": user.email})
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    refr = RefreshDB(user_id = user.id,token_hash = record,exp = expiered + timedelta(settings.ABS_DAY_LIFE),
-                    family_id = family_id,abs_edge = create_abs_edge()) 
+    user_id = user.id
+    now = datetime.now(timezone.utc)
+    new_abs_edge = create_abs_edge()
+    new_exp = min(now + timedelta(days=settings.REFRESH_TOKEN_TIME_DAYS),new_abs_edge)
+
+    access_token = create_access_token({"email":user.email})
+    refresh_token = create_refresh_token({"email":user.email},new_exp)
+    refr = RefreshDB(user_id = user.id,token_hash = hash_token(refresh_token),exp = new_exp,
+                    family_id = uuid.uuid4(),abs_edge = new_abs_edge) 
     db.add(refr)
     await db.commit()
-    await db.refresh(refr)
 
-    logger.info(f"User: {form_data.client_id} was login")
-    return {"access_token": access_token, "refresh_token": token,"token_type": "bearer"}
+    logger.info(f"User: {user_id} was login")
+    return {"access_token": access_token, "refresh_token": refresh_token,"token_type": "bearer"}
 
 async def get_services(user:UserDB,db:AsyncSession) -> UserDB:
     stmt = await db.execute(select(UserDB).filter(UserDB.id == user.id))
