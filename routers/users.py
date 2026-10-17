@@ -7,7 +7,8 @@ from services.users import (
     register_services,
     login_services,
     get_services,
-    refresh_services)
+    refresh_services,
+    logout_services)
 from lim import limiter
 
 router = APIRouter(prefix="/user",tags=["Users"])
@@ -34,3 +35,7 @@ async def get_me(user:UserMODELS = Depends(get_current_user),db:AsyncSession = D
 @router.get("/refresh")
 async def refresh(token:str = Depends(get_token),db:AsyncSession = Depends(get_db)):
     return await refresh_services(token,db)
+
+@router.get("/logout")
+async def logout(token:str = Depends(get_token),db:AsyncSession = Depends(get_db)):
+    return await logout_services(token,db)

@@ -12,12 +12,13 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-async def revoke_family(record:RefreshDB,db:AsyncSession) -> None:
+async def revoke_family(family_id:RefreshDB,db:AsyncSession,reason: str = "repeat use") -> None:
     now = datetime.now(timezone.utc)
-    await db.execute(update(RefreshDB).filter(RefreshDB.family_id == record.family_id,
+    await db.execute(update(RefreshDB).filter(RefreshDB.family_id == family_id,
                                 RefreshDB.revoked_at.is_(None)).
-                                values(revoked_at = now,  revoke_reason = "repeat use"))
-
+                                values(revoked_at = now,  revoke_reason = reason))
+    await db.commit()
+   
 async def register_services(user:UserDB,db:AsyncSession) -> str:
     stmt = await db.execute(select(UserDB).filter(UserDB.email == user.email))
     user_db = stmt.scalar_one_or_none()
@@ -100,8 +101,7 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     if record.used is not None:
         logger.warning(f"User {user_id} tried to refresh token but it was used")
-        await revoke_family(record,db)
-        await db.commit()
+        await revoke_family(record.family_id,db)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")
     
     if record.revoked_at:
@@ -122,7 +122,6 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
     if res.rowcount == 0:
         logger.warning(f"Refresh token race/reuse for user {record.user_id}")
         await revoke_family(record,db)
-        await db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")    
 
     new_exp = min(record.abs_edge,now + timedelta(days=settings.REFRESH_TOKEN_TIME_DAYS))
@@ -134,3 +133,14 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
 
     logger.info(f"User's: {user_id} token was refreshed: {refresh_token}")
     return {"access_token": access_token, "refresh_token": refresh_token,"token_type": "bearer"}
+
+async def logout_services(token:str,db:AsyncSession):   
+    test_token = hash_token(token)
+    stmt = await db.execute(select(RefreshDB).filter(RefreshDB.token_hash == test_token))
+    record = stmt.scalar_one_or_none()
+    if not record:
+        logger.warning("User tried to logout token but record was not exist")
+        return {"detail" : "successful"}
+
+    await revoke_family(record.family_id,db,"Exit")
+    return {"detail" : "successful"}
