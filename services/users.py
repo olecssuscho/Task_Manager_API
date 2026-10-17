@@ -144,3 +144,14 @@ async def logout_services(token:str,db:AsyncSession):
 
     await revoke_family(record.family_id,db,"Exit")
     return {"detail" : "successful"}
+
+async def logout_all_services(user:UserDB,db:AsyncSession):
+    stmt = await db.execute(select(UserDB).filter(UserDB.id == user.id))
+    user_db = stmt.scalar_one_or_none()
+
+    now = datetime.now(timezone.utc)
+    await db.execute(update(RefreshDB).filter(RefreshDB.user_id == user_db.id,
+                                RefreshDB.revoked_at.is_(None)).
+                                values(revoked_at = now,  revoke_reason = "Exit"))
+    await db.commit()
+    return {"detail" : "successful"}
