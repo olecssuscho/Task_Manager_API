@@ -16,7 +16,6 @@ class UserDB(Base):
     password : Mapped[str]
     fullname : Mapped[str]
     role : Mapped[str]
-    refresh_token : Mapped[str]
     created_at : Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
 
 class ProjectDB(Base):
