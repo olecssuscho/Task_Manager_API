@@ -25,9 +25,6 @@ def create_refresh_token(data:dict, expired_time: datetime | None = None)->str:
     to_encode.update({"jti":str(uuid.uuid4())})
     return jwt.encode(to_encode,settings.SECRET_KEY,settings.ALGORITHM)
 
-def create_abs_edge() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(days=settings.ABS_DAY_LIFE)
-
 def create_access_token(data:dict, expires_delta: timedelta = None)->str:
     to_encode = data.copy()
     to_encode.update({"type":"access"})
