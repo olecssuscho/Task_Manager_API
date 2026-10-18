@@ -5,10 +5,9 @@ import pytest
 from sqlalchemy.ext.asyncio import create_async_engine,async_sessionmaker
 from main import app
 from depends import get_db
-from sqlalchemy import delete
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from schemas.dbmodels import CommentDB, ProjectDB, ProjectMemberDB, TaskDB, UserDB, RefreshDB
+from schemas.dbmodels import Base
 from sqlalchemy.pool import NullPool
 
 TEST_DATABASE_URL_ASYNC = "postgresql+asyncpg://postgres:123qwe@localhost:5432/Task_Manager_DB_test"
@@ -17,29 +16,30 @@ TEST_DATABASE_URL_SYNC = "postgresql+psycopg2://postgres:123qwe@localhost:5432/T
 async_engine = create_async_engine(TEST_DATABASE_URL_ASYNC,poolclass = NullPool)
 AsyncSessionLocal = async_sessionmaker(async_engine)
 engine = create_engine(TEST_DATABASE_URL_SYNC)
-Session = sessionmaker(engine)
 async def override_db():
     async with AsyncSessionLocal() as db:
         yield db
 
-def clear_tables():
-    with Session() as db:
-        db.execute(delete(CommentDB))
-        db.execute(delete(TaskDB))
-        db.execute(delete(ProjectMemberDB))
-        db.execute(delete(ProjectDB))
-        db.execute(delete(UserDB))
-        db.execute(delete(RefreshDB))
-        db.commit() 
-       
+@pytest.fixture(scope="session",autouse=True)
+def prepare_tables():
+    Base.metadata.create_all(bind = engine)
+    yield
+    Base.metadata.drop_all(bind = engine)
+
+@pytest.fixture(autouse=True)
+def clean_tables():
+    yield
+    with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(table.delete())
+
 @pytest.fixture(scope="session")
 def client():
     app.dependency_overrides[get_db] = override_db
-    clear_tables()
     with TestClient(app) as c:
         yield c
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True)
 def create_users(client):
     
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
