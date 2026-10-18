@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm,HTTPBearer,HTTPAuthorizationCredentials
-from schemas.models import UserMODELS
+from schemas.models import ChangePasswordSchema, UserMODELS
 from depends import get_current_user, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.users import (
@@ -34,18 +34,18 @@ async def login(request:Request,form_data:OAuth2PasswordRequestForm = Depends(),
 async def get_me(user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await get_services(user,db)
 
-@router.get("/refresh")
+@router.post("/refresh")
 async def refresh(token:str = Depends(get_token),db:AsyncSession = Depends(get_db)):
     return await refresh_services(token,db)
 
-@router.get("/logout")
+@router.post("/logout")
 async def logout(token:str = Depends(get_token),db:AsyncSession = Depends(get_db)):
     return await logout_services(token,db)
 
-@router.get("/logout_all")
+@router.post("/logout_all")
 async def logout_all(user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
     return await logout_all_services(user,db)
 
-@router.get("/change_password")
-async def change_password(password:str,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
-    return await change_password_services(password,user,db)
+@router.put("/change_password")
+async def change_password(data:ChangePasswordSchema,user:UserMODELS = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+    return await change_password_services(data.old_password,data.new_password,user,db)
