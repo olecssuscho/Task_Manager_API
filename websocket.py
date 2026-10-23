@@ -19,7 +19,7 @@ class WebSocketManager():
     async def connect(self, websocket:WebSocket, project_id:int, user_id:int):
         if project_id not in self.active_connections:
             self.active_connections[project_id] = {}
-        if user_id not in self.active_connections:
+        if user_id not in self.active_connections[project_id]:
             self.active_connections[project_id][user_id] = []
         self.active_connections[project_id][user_id].append(websocket)
 
