@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from fastapi.websockets import WebSocketDisconnect
 import pytest
+from auth import create_access_token
 from conftest import client,create_users
 import services.ai_client as ai_client
 
@@ -76,6 +77,18 @@ def test_websocket_double_connect(client, create_users):
 @pytest.mark.parametrize("token",["ss","a.s.d"])
 def test_websocket_rejects_malformed_token(client, create_users, token):
     project_id = create_users["project_id"]
+    editor_url = f"/ws/websocket/{token}/{project_id}"
+
+    with pytest.raises(WebSocketDisconnect) as dis_info:
+        with client.websocket_connect(editor_url):
+            pass
+    assert dis_info.value.code == 1008
+
+def test_websocket_rejects_wrong_paylod_token(client, create_users):
+    project_id = create_users["project_id"]
+    token = create_access_token(
+        {"email":"fake"}
+    )
     editor_url = f"/ws/websocket/{token}/{project_id}"
 
     with pytest.raises(WebSocketDisconnect) as dis_info:
