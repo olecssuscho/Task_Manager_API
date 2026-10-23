@@ -47,3 +47,28 @@ def test_websocket_user_not_receive_text(client, create_users):
             pass
     assert dis_info.value.code
 
+def test_websocket_double_connect(client, create_users):
+    project_id = create_users["project_id"]
+    editor_url = f"/ws/websocket/{create_users["editor_token"]}/{project_id}"
+    owner_url = f"/ws/websocket/{create_users["owner_token"]}/{project_id}"
+
+    with client.websocket_connect(editor_url) as ws_editor1, \
+         client.websocket_connect(owner_url) as ws_owner, \
+         client.websocket_connect(editor_url) as ws_editor2:
+
+        response = client.post("/task/create", json={
+            "title": "test",
+            "description": "test",
+            "status": "todo",
+            "priority": "low",
+            "deadline": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+            "project_id": project_id,
+            "assignee_email": "editor@test.com",
+        }, headers={"Authorization":f"Bearer {create_users["owner_token"]}"})
+        assert response.status_code == 200
+
+        task_id = response.json()["id"]
+
+        assert ws_editor1.receive_text() == f"Task created: {task_id}"
+        assert ws_owner.receive_text() == f"Task created: {task_id}"
+        assert ws_editor2.receive_text() == f"Task created: {task_id}"
