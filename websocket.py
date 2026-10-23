@@ -48,7 +48,6 @@ manager = WebSocketManager()
 
 @router.websocket("/ws/websocket/{token}/{project_id}")
 async def websocket_endpoint(websocket: WebSocket, token: str,project_id: int, db: AsyncSession = Depends(get_db)):
-    await websocket.accept()
 
     payload = decode_token(token)
     if payload is None:
@@ -66,7 +65,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str,project_id: int, d
     if not project:
         await websocket.close(1008)
         return
-
+    await websocket.accept()
     await manager.connect(websocket,project_id,user.id)
     try:
         while True:
