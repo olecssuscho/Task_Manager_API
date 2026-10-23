@@ -72,3 +72,13 @@ def test_websocket_double_connect(client, create_users):
         assert ws_editor1.receive_text() == f"Task created: {task_id}"
         assert ws_owner.receive_text() == f"Task created: {task_id}"
         assert ws_editor2.receive_text() == f"Task created: {task_id}"
+
+@pytest.mark.parametrize("token",["ss","a.s.d"])
+def test_websocket_rejects_malformed_token(client, create_users, token):
+    project_id = create_users["project_id"]
+    editor_url = f"/ws/websocket/{token}/{project_id}"
+
+    with pytest.raises(WebSocketDisconnect) as dis_info:
+        with client.websocket_connect(editor_url):
+            pass
+    assert dis_info.value.code == 1008
