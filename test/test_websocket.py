@@ -95,3 +95,16 @@ def test_websocket_rejects_wrong_paylod_token(client, create_users):
         with client.websocket_connect(editor_url):
             pass
     assert dis_info.value.code == 1008
+
+def test_websocket_rejects_wrong_exp_token(client, create_users):
+    project_id = create_users["project_id"]
+    token = create_access_token(
+        data = {"email":"editor@test.com"},
+        expires_delta=timedelta(-1)
+    )
+    editor_url = f"/ws/websocket/{token}/{project_id}"
+
+    with pytest.raises(WebSocketDisconnect) as dis_info:
+        with client.websocket_connect(editor_url):
+            pass
+    assert dis_info.value.code == 1008
