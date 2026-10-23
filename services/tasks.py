@@ -40,8 +40,9 @@ async def create_tasks_services(task:TaskDB,project_id:int,asiigne_email:str,use
     db.add(task_db)
     await db.commit()
     await db.refresh(task_db)
+    task_id = task_db.id
     logger.info(f"User: {user_id} created task: {task_db.id} to project: {task_db.project_id}")
-    await manager.broadcast(task_db.project_id,"Task created")
+    await manager.broadcast(task_db.project_id,f"Task created: {task_id}")
     return task_db
 
 async def get_all_tasks_services(id:int,user:UserDB,db:AsyncSession):
@@ -78,9 +79,10 @@ async def update_task_services(id:int,task:TaskDB,task_email:str,user:UserDB,db:
         assignee_id = assigne.id, embedding=emd
     ))
     user_id = user.id
+    task_id = task_db.id
     await db.commit()
     logger.info(f"User: {user_id} update task: {id} to project: {project_id}")
-    await manager.broadcast(project_id,"Task updated")
+    await manager.broadcast(project_id,f"Task updated: {task_id}")
     return "Success"
 
 async def delete_task_services(id:int,user:UserDB,db:AsyncSession):
@@ -96,7 +98,7 @@ async def delete_task_services(id:int,user:UserDB,db:AsyncSession):
     await db.execute(delete(TaskDB).filter(TaskDB.id == id))
     await db.commit()
     logger.info(f"User: {user_id} delete task: {task_id} to project: {project_id}")
-    await manager.broadcast(project_id,"Task deleted")
+    await manager.broadcast(project_id,f"Task deleted: {task_id}")
     return "Success"
 
 async def create_from_text_services(text:str,project_id:int,assignee_email:str,user:UserDB,db:AsyncSession):
