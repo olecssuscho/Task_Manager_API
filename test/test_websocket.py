@@ -108,3 +108,15 @@ def test_websocket_rejects_wrong_exp_token(client, create_users):
         with client.websocket_connect(editor_url):
             pass
     assert dis_info.value.code == 1008
+
+def test_websocket_rejects_not_exist_project(client, create_users):
+    project_id = -9
+    
+    editor_url = f"/ws/websocket/{create_users["editor_token"]}/{project_id}"
+
+    with pytest.raises(WebSocketDisconnect) as dis_info:
+        with client.websocket_connect(editor_url):
+            pass
+    assert dis_info.value.code == 1008    
+
+    
