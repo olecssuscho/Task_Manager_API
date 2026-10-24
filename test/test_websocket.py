@@ -119,4 +119,27 @@ def test_websocket_rejects_not_exist_project(client, create_users):
             pass
     assert dis_info.value.code == 1008    
 
+def test_user_was_disconnected_but_get_message(client, create_users):
+    project_id = create_users["project_id"]
+    editor_url = f"/ws/websocket/{create_users["editor_token"]}/{project_id}"
+    owner_url = f"/ws/websocket/{create_users["owner_token"]}/{project_id}"
+
+    with client.websocket_connect(editor_url) as ws_editor:
+        with client.websocket_connect(owner_url) :
+            pass
+        
+        response = client.post("/task/create", json={
+            "title": "test",
+            "description": "test",
+            "status": "todo",
+            "priority": "low",
+            "deadline": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+            "project_id": project_id,
+            "assignee_email": "editor@test.com",
+        }, headers={"Authorization":f"Bearer {create_users["owner_token"]}"})
+        assert response.status_code == 200
+
+        task_id = response.json()["id"]
+
+        assert ws_editor.receive_text() == f"Task created: {task_id}"
     
