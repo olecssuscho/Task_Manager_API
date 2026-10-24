@@ -177,8 +177,6 @@ def test_websocket_user_not_part_of_project(client, create_users):
         }, headers={"Authorization":f"Bearer {create_users["owner_token"]}"})
         assert response1.status_code == 200
 
-        task_id = response1.json()["id"]
-
         response2 = client.post("/task/create", json={
             "title": "test",
             "description": "test",
@@ -206,3 +204,14 @@ def test_websocket_user_not_part_of_project(client, create_users):
         assert ws_not_project1_part.receive_text() == f"Task updated: {task_id_2}"
         assert ws_editor.receive_text() != f"Task updated: {task_id_2}"
         assert ws_owner.receive_text() != f"Task updated: {task_id_2}"
+
+def test_websocket_user_deleted_from_project(client, create_users):
+    project_id = create_users["project_id"]
+    editor_url = f"/ws/websocket/{create_users["editor_token"]}/{project_id}"
+
+    client.delete(f"/project_member/project/{project_id}/member/editor@test.com", headers={"Authorization": f"Bearer {create_users["owner_token"]}"})
+
+    with pytest.raises(WebSocketDisconnect) as dis_info:
+           with client.websocket_connect(editor_url):
+               pass
+    assert dis_info.value.code == 1008
