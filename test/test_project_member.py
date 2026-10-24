@@ -1,5 +1,3 @@
-from conftest import client,create_users
-
 def test_owner_become_part_of_created_project(client,create_users):
     project = client.post("/project/create",
         json={"name":"Test project","description":"test description","owner_email":"owner@test.com"},

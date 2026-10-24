@@ -1,4 +1,3 @@
-from conftest import client,create_users
 import services.ai_client as ai_client
 
 def fake_embedding(text):

@@ -1,6 +1,5 @@
 from datetime import timedelta
 from auth import create_access_token,create_refresh_token
-from conftest import client
 import services.ai_client as ai_client
 
 def fake_embedding(text):
