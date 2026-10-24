@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 import os
 os.environ["TESTING"] = "1"
 from fastapi.testclient import TestClient
@@ -69,3 +70,43 @@ def create_users(client):
         "editor_token": editor_token,
         "viewer_token": viewer_token,
     }
+
+@pytest.fixture
+def create_task(client,create_users):
+    def _create(
+        title="test",
+        description="test description",
+        status="todo",
+        priority="low",
+        deadline=None,
+        project_id=None,
+        assignee_email="editor@test.com",
+        token=None,
+    ):
+
+        if deadline is None:
+            deadline = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+        if project_id is None:
+            project_id = create_users["project_id"]
+        if token is None:
+            token = create_users["editor_token"]
+    
+        return client.post("/task/create",json={
+              "title": title,
+              "description": description,
+              "status": status,
+              "priority": priority,
+              "deadline": deadline,
+              "project_id": project_id,
+              "assignee_email": assignee_email
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+    
+    return _create
+
+@pytest.fixture
+def existing_task(create_task):
+    response = create_task()
+    assert response.status_code == 200
+    return response.json()
