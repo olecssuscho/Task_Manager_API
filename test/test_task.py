@@ -26,7 +26,7 @@ def test_editor_cannot_update_task_with_non_assige_email_data_is_kept(client,cre
           "status": "todo",
           "priority": "low",
           "deadline": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
-          "assignee_email": "11111"
+          "assignee_email": "11111@eamil.com"
         },
         headers={"Authorization": f"Bearer {create_users["editor_token"]}"}
     ) 
@@ -39,3 +39,9 @@ def test_editor_cannot_update_task_with_non_assige_email_data_is_kept(client,cre
     assert repeat_task["deadline"] == existing_task["deadline"]
     assert repeat_task["assignee_id"] == existing_task["assignee_id"]
     assert 404 == response.status_code
+
+def test_editor_cannot_get_tas_for_not_exist_project(client,create_users):
+    repeated_tasks = client.get(f"/task/{0}/tasks",headers={"Authorization":f"Bearer {create_users["editor_token"]}"})
+    assert repeated_tasks.status_code == 404
+
+    
