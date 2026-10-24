@@ -142,4 +142,67 @@ def test_user_was_disconnected_but_get_message(client, create_users):
         task_id = response.json()["id"]
 
         assert ws_editor.receive_text() == f"Task created: {task_id}"
-    
+
+def test_websocket_user_not_part_of_project(client, create_users):
+    project_id = create_users["project_id"]
+    editor_url = f"/ws/websocket/{create_users["editor_token"]}/{project_id}"
+    owner_url = f"/ws/websocket/{create_users["owner_token"]}/{project_id}"
+
+    client.post("/user/register", json={"email": "notpartofproject1@test.com", "password": "pass12345", "fullname": "Viewer", "role":"editor"})
+    not_part_of_project1 = client.post("/user/login", data={"username": "notpartofproject1@test.com", "password": "pass12345"})
+    assert not_part_of_project1.status_code == 200
+    not_part_of_project1_token = not_part_of_project1.json()["access_token"]
+
+    project = client.post("/project/create",
+    json={"name":"Test project","description":"test description","owner_email":"owner@test.com"},
+    headers={"Authorization": f"Bearer {create_users["owner_token"]}"})
+    project_id_2 = project.json()["id"]    
+
+    client.post(f"/project_member/project/{project_id_2}/member/notpartofproject1@test.com", json={"role": "editor"}, headers={"Authorization": f"Bearer {create_users["owner_token"]}"})
+
+    not_part_of_project1_url = f"/ws/websocket/{not_part_of_project1_token}/{project_id_2}"
+
+    with client.websocket_connect(editor_url) as ws_editor, \
+         client.websocket_connect(owner_url) as ws_owner, \
+        client.websocket_connect(not_part_of_project1_url) as ws_not_project1_part:
+
+        response1 = client.post("/task/create", json={
+            "title": "test",
+            "description": "test",
+            "status": "todo",
+            "priority": "low",
+            "deadline": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+            "project_id": project_id,
+            "assignee_email": "editor@test.com",
+        }, headers={"Authorization":f"Bearer {create_users["owner_token"]}"})
+        assert response1.status_code == 200
+
+        task_id = response1.json()["id"]
+
+        response2 = client.post("/task/create", json={
+            "title": "test",
+            "description": "test",
+            "status": "todo",
+            "priority": "low",
+            "deadline": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+            "project_id": project_id_2,
+            "assignee_email": "notpartofproject1@test.com",
+        }, headers={"Authorization":f"Bearer {not_part_of_project1_token}"})
+        assert response2.status_code == 200
+
+        task_id_2 = response2.json()["id"]
+
+        assert ws_not_project1_part.receive_text() == f"Task created: {task_id_2}"
+
+        response2 = client.put(f"/task/{task_id_2}", json={
+            "title": "change",
+            "description": "test",
+            "status": "todo",
+            "priority": "low",
+            "deadline": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+            "assignee_email": "notpartofproject1@test.com",
+        }, headers={"Authorization":f"Bearer {not_part_of_project1_token}"})
+        
+        assert ws_not_project1_part.receive_text() == f"Task updated: {task_id_2}"
+        assert ws_editor.receive_text() != f"Task updated: {task_id_2}"
+        assert ws_owner.receive_text() != f"Task updated: {task_id_2}"
