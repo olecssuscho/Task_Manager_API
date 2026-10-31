@@ -1,9 +1,9 @@
-from datetime import timedelta
-from auth import create_access_token,create_refresh_token
-from schemas.dbmodels import UserDB
+from datetime import datetime, timedelta, timezone
+from auth import create_access_token,create_refresh_token, hash_token
+from schemas.dbmodels import RefreshDB, UserDB
 import services.ai_client as ai_client
 from conftest import engine
-from sqlalchemy import delete
+from sqlalchemy import delete, select, update
 
 def fake_embedding(text):
     return [0.0] * 1024  
@@ -95,7 +95,6 @@ def test_refresh_endpoint_with_not_exist_user(client):
 
     with engine.begin() as conn:      
         conn.execute(delete(UserDB).where(UserDB.id == owner_id))
-        conn.commit()
 
     refresh_token = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     
@@ -111,6 +110,20 @@ def test_refresh_endpoint_with_used_token(client):
 
     refresh_token_2 = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     assert refresh_token_2.status_code == 401
+
+def test_refresh_endpoint_that_was_revorked(client):
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
+    token = owner.json()["refresh_token"]
+    test_token = hash_token(token)
+    now = datetime.now(timezone.utc)
+    with engine.begin() as conn:      
+        response = conn.execute(update(RefreshDB).where(RefreshDB.token_hash == test_token).values(revoked_at = now))
+        assert response.rowcount == 1
+
+    result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
+    assert result.status_code == 401
+    assert "access_token" not in result.json()
 
 def test_change_password(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
