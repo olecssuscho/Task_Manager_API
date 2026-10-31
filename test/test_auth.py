@@ -1,6 +1,9 @@
 from datetime import timedelta
 from auth import create_access_token,create_refresh_token
+from schemas.dbmodels import UserDB
 import services.ai_client as ai_client
+from conftest import engine
+from sqlalchemy import delete
 
 def fake_embedding(text):
     return [0.0] * 1024  
@@ -80,6 +83,23 @@ def test_refresh_endpoint_with_not_exist_token(client):
     refresh_token = client.post("user/refresh",headers={"Authorization":"Bearer sdasdwwwqw"})
     
     assert refresh_token.status_code == 401
+
+def test_refresh_endpoint_with_not_exist_user(client):
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
+    token = owner.json()["access_token"]
+
+    get_owner = client.get("/user/me",headers={"Authorization":f"Bearer {token}"})
+
+    owner_id = get_owner.json()["id"]
+
+    with engine.begin() as conn:      
+        conn.execute(delete(UserDB).where(UserDB.id == owner_id))
+        conn.commit()
+
+    refresh_token = client.post("user/refresh",headers={"Authorization":f"Bearer {token}"})
+    
+    assert refresh_token.status_code == 401 
 
 def test_change_password(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
