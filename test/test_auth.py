@@ -74,13 +74,13 @@ def test_refresh_endpoint_with_access_token(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
     owner = client.post("/user/login", data={"username": "owner@test.com", "password": "pass12345"})
     token = owner.json()["access_token"]
-    refresh_token = client.post("user/refresh",headers={"Authorization":f"Bearer {token}"})
+    refresh_token = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     
     assert refresh_token.status_code == 401 
 
 def test_refresh_endpoint_with_not_exist_token(client):
 
-    refresh_token = client.post("user/refresh",headers={"Authorization":"Bearer sdasdwwwqw"})
+    refresh_token = client.post("/user/refresh",headers={"Authorization":"Bearer sdasdwwwqw"})
     
     assert refresh_token.status_code == 401
 
@@ -97,9 +97,20 @@ def test_refresh_endpoint_with_not_exist_user(client):
         conn.execute(delete(UserDB).where(UserDB.id == owner_id))
         conn.commit()
 
-    refresh_token = client.post("user/refresh",headers={"Authorization":f"Bearer {token}"})
+    refresh_token = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     
     assert refresh_token.status_code == 401 
+
+def test_refresh_endpoint_with_used_token(client):
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
+    token = owner.json()["refresh_token"]
+
+    refresh_token_1 = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
+    assert refresh_token_1.status_code == 200
+
+    refresh_token_2 = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
+    assert refresh_token_2.status_code == 401
 
 def test_change_password(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
