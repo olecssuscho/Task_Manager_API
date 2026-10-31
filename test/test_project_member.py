@@ -17,7 +17,7 @@ def test_owner_cannot_add_non_exist_person(client,create_users):
     assert 404 == member.status_code
 
 def test_owner_cannot_add_non_exist_project(client,create_users):
-    member = client.post(f"/project_member/project/{23}/member/editor@test.com", json={"role": "editor"}, 
+    member = client.post(f"/project_member/project/{0}/member/editor@test.com", json={"role": "editor"}, 
                           headers={"Authorization": f"Bearer {create_users['owner_token']}"})
 
     assert 404 == member.status_code
