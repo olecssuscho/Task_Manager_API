@@ -62,5 +62,10 @@ def test_editor_cannot_update_task_that_not_exist(client,create_users):
 
     assert result.status_code == 404
 
+def test_editor_cannot_delete_task_that_not_exist(client,create_users):
+    result = client.delete(f"/task/{0}",
+        headers={"Authorization": f"Bearer {create_users["editor_token"]}"})
+
+    assert result.status_code == 404
 
 
