@@ -18,6 +18,12 @@ def create_abs_edge(now:datetime) -> datetime:
 def create_refresh_exp(now: datetime, abs_edge: datetime) -> datetime:
     return min(abs_edge, now + timedelta(days=settings.REFRESH_TOKEN_TIME_DAYS))
 
+async def get_refresh_record(token_hash, db):
+    result = await db.execute(
+        select(RefreshDB).filter(RefreshDB.token_hash == token_hash)
+    )
+    return result.scalar_one_or_none()
+
 async def revoke_family(family_id:float,db:AsyncSession,reason: str = "repeat use") -> None:
     now = datetime.now(timezone.utc)
     await db.execute(update(RefreshDB).filter(RefreshDB.family_id == family_id,
@@ -90,8 +96,7 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
         logger.warning("Refresh failed: token not decoded or wrong type")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     test_token = hash_token(token)
-    stmt = await db.execute(select(RefreshDB).filter(RefreshDB.token_hash == test_token))
-    record = stmt.scalar_one_or_none()
+    record = await get_refresh_record(test_token,db)
 
     if not record:
         logger.warning("User tried to refresh token but token was not exist")
