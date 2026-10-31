@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from auth import create_access_token,create_refresh_token, hash_token
 from schemas.dbmodels import RefreshDB, UserDB
 import services.ai_client as ai_client
 from conftest import engine
-from sqlalchemy import delete,update
+from sqlalchemy import delete, select,update
 import time
 
 def fake_embedding(text):
@@ -111,6 +112,15 @@ def test_refresh_endpoint_with_used_token(client):
 
     refresh_token_2 = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     assert refresh_token_2.status_code == 401
+    with engine.begin() as conn:
+        record = conn.execute(
+            select(RefreshDB).where(RefreshDB.token_hash == hash_token(token))
+        ).one()
+        family = conn.execute(
+            select(RefreshDB).where(RefreshDB.family_id == record.family_id)
+        ).all()
+    assert len(family) >= 2
+    assert all(row.revoked_at is not None for row in family)
 
 def test_refresh_endpoint_that_was_revorked(client):
     client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
@@ -147,6 +157,34 @@ def test_refresh_endpoint_that_on_edge_of_abs_edge(client):
 
     result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     assert result.status_code == 401       
+
+def test_refresh_race_condition_revokes_family_and_returns_401(client,monkeypatch):
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
+    token = owner.json()["refresh_token"]
+    test_token = hash_token(token)
+    now = datetime.now(timezone.utc)
+    with engine.begin() as conn:      
+        response = conn.execute(select(RefreshDB).filter(RefreshDB.token_hash == test_token)).one()
+        stale = SimpleNamespace(
+            id=response.id, user_id=response.user_id, family_id=response.family_id,
+            used=None, revoked_at=None, exp=response.exp, abs_edge=response.abs_edge)
+        conn.execute(update(RefreshDB).where(RefreshDB.token_hash == test_token).values(used = now))
+    async def fake_get_record(*args, **kwargs):
+        return stale
+    monkeypatch.setattr("services.users.get_refresh_record", fake_get_record)
+    result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})    
+    assert result.status_code == 401
+    with engine.begin() as conn:
+        record = conn.execute(
+            select(RefreshDB).where(RefreshDB.token_hash == hash_token(token))
+        ).one()
+        family = conn.execute(
+            select(RefreshDB).where(RefreshDB.family_id == record.family_id)
+        ).all()
+    assert len(family) >= 1
+    assert all(row.revoked_at is not None for row in family)
+
 def test_change_password(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
     owner = client.post("/user/login", data={"username": "owner@test.com", "password": "pass12345"})
