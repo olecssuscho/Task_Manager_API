@@ -129,12 +129,24 @@ def test_refresh_endpoint_that_was_revorked(client):
 def test_refresh_endpoint_that_was_expired(client):
     now = datetime.now(timezone.utc)
     time.sleep(5)
-    
     token = create_refresh_token({"email":"ss@test.com"},now)
 
     result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     assert result.status_code == 401
 
+def test_refresh_endpoint_that_on_edge_of_abs_edge(client):
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
+    token = owner.json()["refresh_token"]
+    test_token = hash_token(token)
+    token = owner.json()["refresh_token"]
+    now = datetime.now(timezone.utc)
+    with engine.begin() as conn:      
+        response = conn.execute(update(RefreshDB).where(RefreshDB.token_hash == test_token).values(abs_edge = now))
+        assert response.rowcount == 1
+
+    result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
+    assert result.status_code == 401       
 def test_change_password(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
     owner = client.post("/user/login", data={"username": "owner@test.com", "password": "pass12345"})
