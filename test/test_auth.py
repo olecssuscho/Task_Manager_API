@@ -3,7 +3,8 @@ from auth import create_access_token,create_refresh_token, hash_token
 from schemas.dbmodels import RefreshDB, UserDB
 import services.ai_client as ai_client
 from conftest import engine
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete,update
+import time
 
 def fake_embedding(text):
     return [0.0] * 1024  
@@ -124,6 +125,15 @@ def test_refresh_endpoint_that_was_revorked(client):
     result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     assert result.status_code == 401
     assert "access_token" not in result.json()
+
+def test_refresh_endpoint_that_was_expired(client):
+    now = datetime.now(timezone.utc)
+    time.sleep(5)
+    
+    token = create_refresh_token({"email":"ss@test.com"},now)
+
+    result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
+    assert result.status_code == 401
 
 def test_change_password(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
