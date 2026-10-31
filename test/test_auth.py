@@ -80,9 +80,16 @@ def test_refresh_endpoint_with_access_token(client):
     
     assert refresh_token.status_code == 401 
 
-def test_refresh_endpoint_with_not_exist_token(client):
+def test_refresh_endpoint_with_worng_token(client):
 
     refresh_token = client.post("/user/refresh",headers={"Authorization":"Bearer sdasdwwwqw"})
+    
+    assert refresh_token.status_code == 401
+
+def test_refresh_endpoint_with_not_exist_token(client):
+    token = create_refresh_token({"email":"ss@test.com"})
+
+    refresh_token = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     
     assert refresh_token.status_code == 401
 
@@ -94,7 +101,6 @@ def test_refresh_endpoint_with_not_exist_user(client):
     get_owner = client.get("/user/me",headers={"Authorization":f"Bearer {token}"})
 
     owner_id = get_owner.json()["id"]
-
     with engine.begin() as conn:      
         conn.execute(delete(UserDB).where(UserDB.id == owner_id))
 
