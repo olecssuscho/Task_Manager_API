@@ -130,7 +130,7 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
         await revoke_family(record,db)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")    
 
-    new_exp = min(record.abs_edge,now + timedelta(days=settings.REFRESH_TOKEN_TIME_DAYS))
+    new_exp = create_refresh_exp(now,record.abs_edge)
     refresh_token = create_refresh_token({"email": user.email},new_exp)
     db.add(RefreshDB(user_id = user_id,token_hash = hash_token(refresh_token),exp = new_exp,
                      family_id = record.family_id,abs_edge = record.abs_edge))
