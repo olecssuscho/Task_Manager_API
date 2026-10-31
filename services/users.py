@@ -18,7 +18,7 @@ def create_abs_edge(now:datetime) -> datetime:
 def create_refresh_exp(now: datetime, abs_edge: datetime) -> datetime:
     return min(abs_edge, now + timedelta(days=settings.REFRESH_TOKEN_TIME_DAYS))
 
-async def revoke_family(family_id:RefreshDB,db:AsyncSession,reason: str = "repeat use") -> None:
+async def revoke_family(family_id:float,db:AsyncSession,reason: str = "repeat use") -> None:
     now = datetime.now(timezone.utc)
     await db.execute(update(RefreshDB).filter(RefreshDB.family_id == family_id,
                                 RefreshDB.revoked_at.is_(None)).
@@ -127,7 +127,7 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
     
     if res.rowcount == 0:
         logger.warning(f"Refresh token race/reuse for user {record.user_id}")
-        await revoke_family(record,db)
+        await revoke_family(record.family_id,db)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token")    
 
     new_exp = create_refresh_exp(now,record.abs_edge)
