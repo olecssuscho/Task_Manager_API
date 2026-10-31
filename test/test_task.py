@@ -49,7 +49,18 @@ def test_editor_cannot_get_task_for_not_exist_project(client,create_users):
     repeated_tasks = client.get(f"/task/{0}/tasks",headers={"Authorization":f"Bearer {create_users["editor_token"]}"})
     assert repeated_tasks.status_code == 404
 
+def test_editor_cannot_update_task_that_not_exist(client,create_users):
+    result = client.put(f"/task/{0}",json={
+          "title": "test_update_task",
+          "description": "test update description",
+          "status": "todo",
+          "priority": "low",
+          "deadline": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+          "assignee_email": "11111@eamil.com"
+        },
+        headers={"Authorization": f"Bearer {create_users["editor_token"]}"})
 
+    assert result.status_code == 404
 
 
 
