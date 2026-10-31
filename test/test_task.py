@@ -12,6 +12,11 @@ def test_cannot_create_task_with_non_exist_assigne(create_task):
     assert task.status_code == 404   
 
 def test_cannot_create_task_with_non_exist_project(create_task):
+    task = create_task(project_id = None)
+
+    assert task.status_code == 404   
+
+def test_cannot_create_task_with_non_exist_project(create_task):
     task = create_task(project_id = 23)
 
     assert task.status_code == 404  
@@ -40,8 +45,11 @@ def test_editor_cannot_update_task_with_non_assige_email_data_is_kept(client,cre
     assert repeat_task["assignee_id"] == existing_task["assignee_id"]
     assert 404 == response.status_code
 
-def test_editor_cannot_get_tas_for_not_exist_project(client,create_users):
+def test_editor_cannot_get_task_for_not_exist_project(client,create_users):
     repeated_tasks = client.get(f"/task/{0}/tasks",headers={"Authorization":f"Bearer {create_users["editor_token"]}"})
     assert repeated_tasks.status_code == 404
 
-    
+
+
+
+
