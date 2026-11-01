@@ -93,18 +93,15 @@ def test_refresh_endpoint_with_not_exist_token(client):
     
     assert refresh_token.status_code == 401
 
-def test_refresh_endpoint_with_not_exist_user(client):
+def test_refresh_when_user_not_found_returns_401(client,monkeypatch):
     client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
     owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
-    token = owner.json()["access_token"]
-
-    get_owner = client.get("/user/me",headers={"Authorization":f"Bearer {token}"})
-
-    owner_id = get_owner.json()["id"]
-    with engine.begin() as conn:      
-        conn.execute(delete(UserDB).where(UserDB.id == owner_id))
-
-    refresh_token = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
+    refr_token = owner.json()["refresh_token"]
+    
+    async def fake_get_user(*args, **kwargs):
+        return None
+    monkeypatch.setattr("services.users.get_user", fake_get_user)
+    refresh_token = client.post("/user/refresh",headers={"Authorization":f"Bearer {refr_token}"})
     
     assert refresh_token.status_code == 401 
 
