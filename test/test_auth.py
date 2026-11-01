@@ -166,9 +166,14 @@ def test_refresh_endpoint_that_was_revorked(client):
     assert "access_token" not in result.json()
 
 def test_refresh_endpoint_that_was_expired(client):
-    now = datetime.now(timezone.utc)
-    time.sleep(5)
-    token = create_refresh_token({"email":"ss@test.com"},now)
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
+    token = owner.json()["refresh_token"]
+
+    bad_exp = datetime.now(timezone.utc) - timedelta(days = 20)
+    with engine.begin() as conn:
+        response = conn.execute(update(RefreshDB).where(RefreshDB.token_hash == hash_token(token)).values(exp = bad_exp))
+        assert response.rowcount == 1
 
     result = client.post("/user/refresh",headers={"Authorization":f"Bearer {token}"})
     assert result.status_code == 401
