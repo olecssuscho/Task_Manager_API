@@ -24,6 +24,12 @@ async def get_refresh_record(token_hash, db):
     )
     return result.scalar_one_or_none()
 
+async def get_user(user_id, db):
+    result = await db.execute(
+        select(UserDB).filter(UserDB.id == user_id)
+    )
+    return result.scalar_one_or_none()
+
 async def revoke_family(family_id:float,db:AsyncSession,reason: str = "repeat use") -> None:
     now = datetime.now(timezone.utc)
     await db.execute(update(RefreshDB).filter(RefreshDB.family_id == family_id,
@@ -86,9 +92,7 @@ async def login_services(form_data:OAuth2PasswordRequestForm,db:AsyncSession) ->
     return {"access_token": access_token, "refresh_token": refresh_token,"token_type": "bearer"}
 
 async def get_services(user:UserDB,db:AsyncSession) -> UserDB:
-    stmt = await db.execute(select(UserDB).filter(UserDB.id == user.id))
-    user = stmt.scalar_one_or_none()
-    return user
+    return await get_user(user.id,db)
 
 async def refresh_services(token:str,db:AsyncSession) -> dict:
     token_json = decode_token(token)
@@ -105,8 +109,7 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
     user_id = record.user_id
     now = datetime.now(timezone.utc)
 
-    user_test = await db.execute(select(UserDB).filter(UserDB.id == user_id))
-    user = user_test.scalar_one_or_none()
+    user = await get_user(user_id,db)
     if user is None:
         logger.warning(f"Refresh failed: user {user_id} not found")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
@@ -147,8 +150,7 @@ async def refresh_services(token:str,db:AsyncSession) -> dict:
 
 async def logout_services(token:str,db:AsyncSession) -> dict:   
     test_token = hash_token(token)
-    stmt = await db.execute(select(RefreshDB).filter(RefreshDB.token_hash == test_token))
-    record = stmt.scalar_one_or_none()
+    record = await get_refresh_record(test_token,db)
     if not record:
         logger.warning("User tried to logout token but record was not exist")
         return {"detail" : "successful"}
@@ -157,8 +159,7 @@ async def logout_services(token:str,db:AsyncSession) -> dict:
     return {"detail" : "successful"}
 
 async def logout_all_services(user:UserDB,db:AsyncSession) -> dict:
-    stmt = await db.execute(select(UserDB).filter(UserDB.id == user.id))
-    user_db = stmt.scalar_one_or_none()
+    user_db = await get_user(user.id,db)
 
     now = datetime.now(timezone.utc)
     await db.execute(update(RefreshDB).filter(RefreshDB.user_id == user_db.id,
