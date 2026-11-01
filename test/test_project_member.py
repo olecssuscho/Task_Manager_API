@@ -42,3 +42,8 @@ def test_patch_where_project_is_not_exist(client,create_users):
     result = client.patch(f"/project_member/project/{0}/member/editor@test.com",json={"role":"viewer"},headers={"Authorization": f"Bearer {create_users['owner_token']}"})
 
     assert result.status_code == 404
+
+def test_patch_where_user_is_not_exist(client,create_users):
+    result = client.patch(f"/project_member/project/{create_users['project_id']}/member/ss@test.com",json={"role":"viewer"},headers={"Authorization": f"Bearer {create_users['owner_token']}"})
+
+    assert result.status_code == 404
