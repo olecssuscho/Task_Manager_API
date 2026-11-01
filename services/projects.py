@@ -32,11 +32,16 @@ async def get_project_services(user:UserDB,db:AsyncSession):
     return await apaginate(db,projects)
 
 async def get_project_id_services(id:int,user:UserDB,db:AsyncSession):
-    await get_role(id,"viewer",user,db)
+    test_project = await db.execute(select(ProjectDB).where(ProjectDB.id == id))
+    project = test_project.scalar_one_or_none()
+    if not project:
+        logger.warning(f"User {user.id}, tried to get particular project: {id}, but project was not exist")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+    await get_role(project.id,"viewer",user,db)
     stmt = await db.execute(select(ProjectMemberDB).filter((ProjectMemberDB.user_id == user.id),(ProjectMemberDB.project_id ==id)))
     result = stmt.scalar_one_or_none()
     if not result:
-        logger.warning(f"User {user.id}, tried to get particular project: {id}, but project was not exist")
+        logger.warning(f"User {user.id}, tried to get particular project: {id}, he is not part of project")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
     logger.info(f"User: {user.id} get particulat project: {result.project_id}")
     return result
