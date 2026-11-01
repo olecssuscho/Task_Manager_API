@@ -239,6 +239,11 @@ def test_logout(client):
     assert logout.status_code == 200 
     assert changed_password.status_code == 200 
 
+def test_logout_without_token(client):
+    logout = client.post("/user/logout",headers={"Authorization":"Bearer jshshhw"})
+
+    assert logout.status_code == 200 
+
 def test_logout_all(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
     owner1 = client.post("/user/login", data={"username": "owner@test.com", "password": "pass12345"})
