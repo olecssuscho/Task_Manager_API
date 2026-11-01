@@ -31,3 +31,9 @@ def test_delete_where_user_is_not_exist(client,create_users):
     result = client.delete(f"/project_member/project/{create_users['project_id']}/member/ss@test.com",headers={"Authorization": f"Bearer {create_users['owner_token']}"})
 
     assert result.status_code == 404
+
+def test_delete_where_user_is_not_part_of_project(client,create_users):
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "ser", "role":"viewer"})
+    result = client.delete(f"/project_member/project/{create_users['project_id']}/member/ss@test.com",headers={"Authorization": f"Bearer {create_users['owner_token']}"})
+
+    assert result.status_code == 404
