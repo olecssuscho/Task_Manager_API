@@ -21,3 +21,8 @@ def test_owner_cannot_add_non_exist_project(client,create_users):
                           headers={"Authorization": f"Bearer {create_users['owner_token']}"})
 
     assert 404 == member.status_code
+
+def test_delete_where_project_is_not_exist(client,create_users):
+    result = client.delete(f"/project_member/project/{0}/member/editor@test.com",headers={"Authorization": f"Bearer {create_users['owner_token']}"})
+
+    assert result.status_code == 404
