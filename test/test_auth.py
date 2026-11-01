@@ -227,6 +227,14 @@ def test_change_password(client):
     
     assert changed_password.status_code == 200     
 
+def test_change_password_with_wrong_old_new_pasword(client):
+    client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "owner@test.com", "password": "pass12345"})
+    token = owner.json()["access_token"]
+    changed_password = client.put("/user/change_password",json = {"old_password":"ss","new_password":"1111111111"},headers={"Authorization":f"Bearer {token}"})
+    
+    assert changed_password.status_code == 401 
+
 def test_logout(client):
     client.post("/user/register", json={"email": "owner@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
     owner = client.post("/user/login", data={"username": "owner@test.com", "password": "pass12345"})
