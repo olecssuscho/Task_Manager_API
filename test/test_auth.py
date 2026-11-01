@@ -105,6 +105,32 @@ def test_refresh_when_user_not_found_returns_401(client,monkeypatch):
     
     assert refresh_token.status_code == 401 
 
+def test_refresh_after_user_deleted_returns_401(client):
+    client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
+    owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
+    assert owner.status_code == 200
+    access_token = owner.json()["access_token"]
+    refresh_token = owner.json()["refresh_token"]
+
+    me = client.get("/user/me", headers={"Authorization": f"Bearer {access_token}"})
+    assert me.status_code == 200
+    owner_id = me.json()["id"]
+
+    with engine.begin() as conn:
+        deleted = conn.execute(delete(UserDB).where(UserDB.id == owner_id))
+        tokens = conn.execute(
+            select(RefreshDB).where(RefreshDB.user_id == owner_id)
+        ).all()
+
+    assert deleted.rowcount == 1
+    assert tokens == []  
+
+    me_after = client.get("/user/me", headers={"Authorization": f"Bearer {access_token}"})
+    assert me_after.status_code == 401
+
+    response = client.post("/user/refresh", headers={"Authorization": f"Bearer {refresh_token}"})
+    assert response.status_code == 401
+
 def test_refresh_endpoint_with_used_token(client):
     client.post("/user/register", json={"email": "ss@test.com", "password": "pass12345", "fullname": "Owner", "role":"owner"})
     owner = client.post("/user/login", data={"username": "ss@test.com", "password": "pass12345"})
