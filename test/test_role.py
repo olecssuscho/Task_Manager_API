@@ -297,7 +297,7 @@ def test_viewer_cannot_update_project(client,create_users):
         "name":"Updated project","description":"Updated description"
     },
         headers={"Authorization": f"Bearer {create_users["viewer_token"]}"})
-    assert project.status_code == 405
+    assert project.status_code == 403
 
 def test_viewer_cannot_delete_project(client,create_users):
     project = client.delete(f"/project/{create_users["project_id"]}",
@@ -309,7 +309,7 @@ def test_editor_cannot_update_project(client,create_users):
         "name":"Updated project","description":"Updated description"
     },
         headers={"Authorization": f"Bearer {create_users["editor_token"]}"})
-    assert project.status_code == 405
+    assert project.status_code == 403
 
 def test_editor_cannot_delete_project(client,create_users):
     project = client.delete(f"/project/{create_users["project_id"]}",
