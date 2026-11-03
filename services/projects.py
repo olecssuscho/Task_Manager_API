@@ -50,7 +50,7 @@ async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncS
     
     if prod.owner_id != user.id:
         logger.warning(f"User {user.id}, tried to update project: {id}, but he was not owner")
-        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="You are not owner")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not owner")
     
     await db.execute(update(ProjectDB).filter(ProjectDB.id == id).values(name = project.name,description = project.description))
     user_id = user.id
@@ -60,16 +60,13 @@ async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncS
     return "Success"
     
 async def delete_project_services(id:int,user:UserDB,db:AsyncSession):
-    await get_role(id,"owner",user,db)
     result = await db.execute(select(ProjectDB).filter(ProjectDB.id == id))
     prod = result.scalar_one_or_none()
     if not prod:
         logger.warning(f"User {user.id}, tried to update project: {id}, but project was not exist")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
-    
-    if prod.owner_id != user.id:
-        logger.warning(f"User {user.id}, tried to update project: {id}, but he was not owner")
-        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="You are not owner")
+
+    await get_role(prod.id,"owner",user,db)
    
     await db.execute(delete(ProjectDB).filter(ProjectDB.id ==id))
     user_id = user.id
