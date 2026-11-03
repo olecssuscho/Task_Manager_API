@@ -1,13 +1,14 @@
-from datetime import datetime, timedelta, timezone
 import os
 os.environ["TESTING"] = "1"
+import minio
+from minio.deleteobjects import DeleteObject
+from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine,async_sessionmaker
 from main import app
 from depends import get_db
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from schemas.dbmodels import Base
 from sqlalchemy.pool import NullPool
 
@@ -110,3 +111,21 @@ def existing_task(create_task):
     response = create_task()
     assert response.status_code == 200
     return response.json()
+
+@pytest.fixture(scope="session")
+def minio_client():
+    endpoint = os.environ["MINIO_ENDPOINT"]
+    assert endpoint.endswith(":9100")
+    customer = minio.Minio(os.environ["MINIO_ENDPOINT"],os.environ["MINIO_ACCESS_KEY"],os.environ["MINIO_SECRET_KEY"],secure=False)
+    if not customer.bucket_exists(os.environ["MINIO_BUCKET"]):
+        customer.make_bucket(os.environ["MINIO_BUCKET"])
+    return customer
+
+@pytest.fixture(scope="session")
+def minio_bucket(minio_client):
+    yield
+    bucket = os.environ["MINIO_BUCKET"]
+    objects = minio_client.list_objects(bucket, recursive=True)
+    to_delete = [DeleteObject(obj.object_name) for obj in objects]
+    for error in minio_client.remove_objects(bucket, to_delete):
+        raise RuntimeError(f"Failed to delete {error}")
