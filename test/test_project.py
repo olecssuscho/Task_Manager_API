@@ -15,4 +15,9 @@ def test_update_project_with_wrong_project_id(client,create_users):
 def test_update_project_with_wrong_user_id(client,create_users):
     result = client.put(f"/project/{create_users["project_id"]}",
                         json={"name":"foo","description":"bar"},headers={"Authorization":f"Bearer {create_users["editor_token"]}"})
-    assert result.status_code == 405
+    assert result.status_code == 403
+
+def test_delete_project_with_wrong_project_id(client,create_users):
+    result = client.delete(f"/project/{0}",headers={"Authorization":f"Bearer {create_users["owner_token"]}"})
+    assert result.status_code == 404
+  
