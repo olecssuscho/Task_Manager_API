@@ -37,17 +37,11 @@ async def get_project_id_services(id:int,user:UserDB,db:AsyncSession):
     if not project:
         logger.warning(f"User {user.id}, tried to get particular project: {id}, but project was not exist")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
-    await get_role(project.id,"viewer",user,db)
-    stmt = await db.execute(select(ProjectMemberDB).filter((ProjectMemberDB.user_id == user.id),(ProjectMemberDB.project_id ==id)))
-    result = stmt.scalar_one_or_none()
-    if not result:
-        logger.warning(f"User {user.id}, tried to get particular project: {id}, he is not part of project")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
-    logger.info(f"User: {user.id} get particulat project: {result.project_id}")
-    return result
+    allow = await get_role(project.id,"viewer",user,db)
+    logger.info(f"User: {user.id} get particulat project: {allow.project_id}")
+    return allow
 
 async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncSession):
-    await get_role(id,"owner",user,db)
     result = await db.execute(select(ProjectDB).filter(ProjectDB.id == id))
     prod = result.scalar_one_or_none()
     if not prod:
@@ -57,7 +51,7 @@ async def update_project_services(id:int,project:ProjectDB,user:UserDB,db:AsyncS
     if prod.owner_id != user.id:
         logger.warning(f"User {user.id}, tried to update project: {id}, but he was not owner")
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="You are not owner")
-   
+    
     await db.execute(update(ProjectDB).filter(ProjectDB.id == id).values(name = project.name,description = project.description))
     user_id = user.id
     project_id = prod.id
